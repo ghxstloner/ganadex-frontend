@@ -8,7 +8,7 @@ import {
 } from "@/lib/api/client";
 import { getToken, logout } from "@/lib/auth/storage";
 
-type ApiRequestOptions = {
+export type ApiRequestOptions = {
   method?: string;
   body?: unknown;
   headers?: HeadersInit;
@@ -72,3 +72,5 @@ export async function apiRequest<TResponse>(
 
   return body as TResponse;
 }
+
+export const apiClient = apiRequest;

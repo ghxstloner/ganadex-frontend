@@ -5,16 +5,17 @@ export type ApiError = {
 };
 
 const defaultMessageByStatus: Record<number, string> = {
-  400: "Datos involidos",
-  401: "Credenciales involidas",
+  400: "Datos invalidos",
+  401: "Credenciales invalidas",
+  403: "No tienes permisos para esta accion",
   404: "Recurso no encontrado",
-  409: "El email ya esto registrado",
+  409: "El email ya esta registrado",
 };
 
 function getBaseUrl() {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!baseUrl) {
-    throw new Error("NEXT_PUBLIC_API_URL no esto configurado");
+    throw new Error("NEXT_PUBLIC_API_URL no esta configurado");
   }
   return baseUrl.replace(/\/$/, "");
 }

@@ -7,40 +7,108 @@ import type { LucideIcon } from "lucide-react";
 import {
   ArrowLeftRight,
   Banknote,
-  Building2,
   Droplet,
   HeartPulse,
   Home,
   Leaf,
   Loader2,
   LogOut,
-  MapPinned,
   Menu,
   PawPrint,
+  ShieldCheck,
   Stethoscope,
+  Users,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
-import { getStoredSession, getToken, logout } from "@/lib/auth/auth.service";
+import {
+  getStoredSession,
+  getToken,
+  logout,
+  updateStoredSession,
+} from "@/lib/auth/auth.service";
+import { hasPermission } from "@/lib/auth/permissions";
+import { fetchMe } from "@/lib/api/me.service";
 import type { EmpresaDTO, GanadexSession } from "@/lib/types/auth";
 
-const navItems: Array<{
+type NavItem = {
   label: string;
   href: string;
   icon: LucideIcon;
+  permission?: string | string[];
+};
+
+const navSections: Array<{
+  title: string;
+  items: NavItem[];
 }> = [
-  { label: "Resumen", href: "/dashboard", icon: Home },
-  { label: "Empresas", href: "/dashboard/empresas", icon: Building2 },
-  { label: "Fincas", href: "/dashboard/fincas", icon: MapPinned },
-  { label: "Animales", href: "/dashboard/animales", icon: PawPrint },
-  { label: "Movimientos", href: "/dashboard/movimientos", icon: ArrowLeftRight },
-  { label: "Reproducción", href: "/dashboard/reproduccion", icon: HeartPulse },
-  { label: "Leche", href: "/dashboard/leche", icon: Droplet },
-  { label: "Salud", href: "/dashboard/salud", icon: Stethoscope },
-  { label: "Potreros", href: "/dashboard/potreros", icon: Leaf },
-  { label: "Finanzas", href: "/dashboard/finanzas", icon: Banknote },
+  {
+    title: "Principal",
+    items: [
+      { label: "Inicio", href: "/dashboard", icon: Home },
+      {
+        label: "Animales",
+        href: "/dashboard/animales",
+        icon: PawPrint,
+        permission: "animales.view",
+      },
+      {
+        label: "Movimientos",
+        href: "/dashboard/movimientos",
+        icon: ArrowLeftRight,
+        permission: "movimientos.view",
+      },
+      {
+        label: "Reproduccion",
+        href: "/dashboard/reproduccion",
+        icon: HeartPulse,
+        permission: "reproduccion.view",
+      },
+      {
+        label: "Leche",
+        href: "/dashboard/leche",
+        icon: Droplet,
+        permission: "leche.view",
+      },
+      {
+        label: "Salud",
+        href: "/dashboard/salud",
+        icon: Stethoscope,
+        permission: "salud.view",
+      },
+      {
+        label: "Potreros",
+        href: "/dashboard/potreros",
+        icon: Leaf,
+        permission: "potreros.view",
+      },
+      {
+        label: "Finanzas",
+        href: "/dashboard/finanzas",
+        icon: Banknote,
+        permission: "finanzas.view",
+      },
+    ],
+  },
+  {
+    title: "Administracion",
+    items: [
+      {
+        label: "Usuarios",
+        href: "/dashboard/usuarios",
+        icon: Users,
+        permission: "usuarios.view",
+      },
+      {
+        label: "Roles y permisos",
+        href: "/dashboard/roles",
+        icon: ShieldCheck,
+        permission: "roles.view",
+      },
+    ],
+  },
 ];
 
 function getEmpresaLogo(empresa: EmpresaDTO) {
@@ -69,8 +137,29 @@ export default function DashboardLayout({
       router.replace("/select-company");
       return;
     }
+
+    let active = true;
     setSession(stored);
     setLoading(false);
+
+    fetchMe()
+      .then((response) => {
+        if (!active) return;
+        const next =
+          updateStoredSession({
+            user: response.user ?? stored.user,
+            empresas: response.empresas ?? stored.empresas,
+            empresa_activa_id:
+              response.empresa_activa_id ?? stored.empresa_activa_id,
+            permisos: response.permisos ?? stored.permisos,
+          }) ?? stored;
+        setSession(next);
+      })
+      .catch(() => null);
+
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   useEffect(() => {
@@ -100,7 +189,7 @@ export default function DashboardLayout({
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Cargando sesión...</p>
+        <p className="text-sm text-muted-foreground">Cargando sesion...</p>
       </div>
     );
   }
@@ -191,26 +280,43 @@ export default function DashboardLayout({
         <div className="mx-5 h-px bg-border" />
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4">
-          {navItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
-            const Icon = item.icon;
+        <nav className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+          {navSections.map((section) => {
+            const items = section.items.filter((item) =>
+              item.permission ? hasPermission(session, item.permission) : true
+            );
+            if (!items.length) return null;
+
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
+              <div key={section.title} className="space-y-2">
+                <p className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {section.title}
+                </p>
+                <div className="space-y-1">
+                  {items.map((item) => {
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href !== "/dashboard" &&
+                        pathname.startsWith(item.href));
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+                          isActive
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </nav>
@@ -223,7 +329,7 @@ export default function DashboardLayout({
             onClick={logout}
           >
             <LogOut className="h-4 w-4" />
-            Cerrar sesión
+            Cerrar sesion
           </Button>
         </div>
       </aside>

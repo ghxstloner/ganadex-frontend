@@ -46,4 +46,5 @@ export type GanadexSession = {
   user: UserDTO;
   empresas: EmpresaDTO[];
   empresa_activa_id: string | null;
+  permisos?: string[];
 };
