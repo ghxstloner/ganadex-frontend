@@ -79,7 +79,13 @@ export default function RegisterPage() {
       const response = await registerUser(cleanPayload);
       saveSession(response);
       toast.success("Bienvenido a Ganadex");
-      router.push("/dashboard");
+      const hasActiveCompany = Boolean(response.empresa_activa_id);
+      const hasMultipleCompanies = response.empresas.length > 1;
+      if (!hasActiveCompany && hasMultipleCompanies) {
+        router.push("/select-company");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (error) {
       const apiError = error as { status?: number; message?: string };
       const message =

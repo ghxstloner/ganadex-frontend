@@ -24,19 +24,22 @@ export type EmpresaDTO = {
   nombre: string;
   rol_id: string;
   rol_nombre: string;
+  logo_url?: string | null;
+  logo?: string | null;
 };
 
 export type AuthRegisterResponse = {
   user: UserDTO;
   empresas: EmpresaDTO[];
   access_token: string;
+  empresa_activa_id?: string | null;
 };
 
 export type AuthLoginResponse = {
   user: UserDTO;
   empresas: EmpresaDTO[];
-  empresa_activa_sugerida?: string;
   access_token: string;
+  empresa_activa_id?: string | null;
 };
 
 export type GanadexSession = {
