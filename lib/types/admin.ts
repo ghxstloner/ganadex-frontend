@@ -7,7 +7,8 @@ export type PermissionModule =
   | "Leche"
   | "Reproduccion"
   | "Movimientos"
-  | "Potreros";
+  | "Potreros"
+  | "Auditorias";
 
 export type PermissionDefinition = {
   id: string;

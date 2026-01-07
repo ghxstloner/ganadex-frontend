@@ -6,7 +6,8 @@ import {
   resolveApiErrorMessage,
   type ApiError,
 } from "@/lib/api/client";
-import { getToken, logout } from "@/lib/auth/storage";
+import { getToken, getStoredSession, logout } from "@/lib/auth/storage";
+import { isNoEmpresaActivaError } from "@/lib/api/errors";
 
 export type ApiRequestOptions = {
   method?: string;
@@ -15,7 +16,26 @@ export type ApiRequestOptions = {
   signal?: AbortSignal;
   withAuth?: boolean;
   toastOnError?: boolean;
+  /** Skip empresa_activa_id injection (for auth routes) */
+  skipTenant?: boolean;
 };
+
+export type PaginatedResponse<T> = {
+  items: T[];
+  meta?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+};
+
+function redirectToSelectCompany() {
+  if (typeof window !== "undefined") {
+    toast.error("Selecciona una empresa para continuar");
+    window.location.href = "/select-company";
+  }
+}
 
 export async function apiRequest<TResponse>(
   path: string,
@@ -23,18 +43,34 @@ export async function apiRequest<TResponse>(
 ): Promise<TResponse> {
   const url = buildApiUrl(path);
   const method = options.method ?? (options.body ? "POST" : "GET");
-  const headers: HeadersInit = {
-    ...(options.headers ?? {}),
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string> ?? {}),
   };
 
   if (options.body !== undefined) {
     headers["Content-Type"] = "application/json";
   }
 
+  // Inject auth token
   if (options.withAuth !== false) {
     const token = getToken();
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+
+  // Inject empresa activa header for business endpoints
+  if (!options.skipTenant) {
+    const session = getStoredSession();
+    if (session?.empresa_activa_id) {
+      headers["x-empresa-id"] = session.empresa_activa_id;
+    } else {
+      // For non-auth endpoints, require empresa activa
+      const isAuthPath = path.startsWith("/auth") || path === "/me";
+      if (!isAuthPath && typeof window !== "undefined") {
+        redirectToSelectCompany();
+        throw new Error("Empresa activa requerida");
+      }
     }
   }
 
@@ -55,9 +91,15 @@ export async function apiRequest<TResponse>(
       details: body?.errors ?? body?.details,
     };
 
+    // Check for empresa activa required error
+    if (isNoEmpresaActivaError(error)) {
+      redirectToSelectCompany();
+      throw error;
+    }
+
     if (options.toastOnError !== false) {
       if (response.status === 401) {
-        toast.error("Sesion expirada. Inicia sesion de nuevo.");
+        toast.error("Sesión expirada. Inicia sesión de nuevo.");
       } else {
         toast.error(error.message);
       }
@@ -68,6 +110,16 @@ export async function apiRequest<TResponse>(
     }
 
     throw error;
+  }
+
+  // Handle wrapper compatibility: {ok: true, data} or direct response
+  if (body && typeof body === "object" && "ok" in body && body.ok === true) {
+    // Wrapped response
+    if ("meta" in body) {
+      // Return data with meta for paginated responses
+      return { items: body.data, meta: body.meta } as TResponse;
+    }
+    return body.data as TResponse;
   }
 
   return body as TResponse;

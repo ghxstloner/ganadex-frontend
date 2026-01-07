@@ -7,6 +7,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   ArrowLeftRight,
   Banknote,
+  ClipboardCheck,
   Droplet,
   HeartPulse,
   Home,
@@ -44,72 +45,78 @@ const navSections: Array<{
   title: string;
   items: NavItem[];
 }> = [
-  {
-    title: "Principal",
-    items: [
-      { label: "Inicio", href: "/dashboard", icon: Home },
-      {
-        label: "Animales",
-        href: "/dashboard/animales",
-        icon: PawPrint,
-        permission: "animales.view",
-      },
-      {
-        label: "Movimientos",
-        href: "/dashboard/movimientos",
-        icon: ArrowLeftRight,
-        permission: "movimientos.view",
-      },
-      {
-        label: "Reproduccion",
-        href: "/dashboard/reproduccion",
-        icon: HeartPulse,
-        permission: "reproduccion.view",
-      },
-      {
-        label: "Leche",
-        href: "/dashboard/leche",
-        icon: Droplet,
-        permission: "leche.view",
-      },
-      {
-        label: "Salud",
-        href: "/dashboard/salud",
-        icon: Stethoscope,
-        permission: "salud.view",
-      },
-      {
-        label: "Potreros",
-        href: "/dashboard/potreros",
-        icon: Leaf,
-        permission: "potreros.view",
-      },
-      {
-        label: "Finanzas",
-        href: "/dashboard/finanzas",
-        icon: Banknote,
-        permission: "finanzas.view",
-      },
-    ],
-  },
-  {
-    title: "Administracion",
-    items: [
-      {
-        label: "Usuarios",
-        href: "/dashboard/usuarios",
-        icon: Users,
-        permission: "usuarios.view",
-      },
-      {
-        label: "Roles y permisos",
-        href: "/dashboard/roles",
-        icon: ShieldCheck,
-        permission: "roles.view",
-      },
-    ],
-  },
-];
+    {
+      title: "Principal",
+      items: [
+        { label: "Inicio", href: "/dashboard", icon: Home },
+        {
+          label: "Animales",
+          href: "/dashboard/animales",
+          icon: PawPrint,
+          permission: "animales.view",
+        },
+        {
+          label: "Movimientos",
+          href: "/dashboard/movimientos",
+          icon: ArrowLeftRight,
+          permission: "movimientos.view",
+        },
+        {
+          label: "Reproduccion",
+          href: "/dashboard/reproduccion",
+          icon: HeartPulse,
+          permission: "reproduccion.view",
+        },
+        {
+          label: "Leche",
+          href: "/dashboard/leche",
+          icon: Droplet,
+          permission: "leche.view",
+        },
+        {
+          label: "Salud",
+          href: "/dashboard/salud",
+          icon: Stethoscope,
+          permission: "salud.view",
+        },
+        {
+          label: "Potreros",
+          href: "/dashboard/potreros",
+          icon: Leaf,
+          permission: "potreros.view",
+        },
+        {
+          label: "Finanzas",
+          href: "/dashboard/finanzas",
+          icon: Banknote,
+          permission: "finanzas.view",
+        },
+        {
+          label: "Auditorías",
+          href: "/dashboard/auditorias",
+          icon: ClipboardCheck,
+          permission: "auditorias.view",
+        },
+      ],
+    },
+    {
+      title: "Administracion",
+      items: [
+        {
+          label: "Usuarios",
+          href: "/dashboard/usuarios",
+          icon: Users,
+          permission: "usuarios.view",
+        },
+        {
+          label: "Roles y permisos",
+          href: "/dashboard/roles",
+          icon: ShieldCheck,
+          permission: "roles.view",
+        },
+      ],
+    },
+  ];
 
 function getEmpresaLogo(empresa: EmpresaDTO) {
   return empresa.logo_url ?? empresa.logo ?? null;
@@ -178,11 +185,11 @@ export default function DashboardLayout({
   const logoUrl = empresaActiva ? getEmpresaLogo(empresaActiva) : null;
   const empresaInitials = empresaActiva?.nombre
     ? empresaActiva.nombre
-        .split(" ")
-        .slice(0, 2)
-        .map((part) => part[0])
-        .join("")
-        .toUpperCase()
+      .split(" ")
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
     : "GD";
 
   if (loading) {
