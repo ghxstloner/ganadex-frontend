@@ -1,4 +1,3 @@
-import { postJSON } from "@/lib/api/client";
 import { apiRequest } from "@/lib/api/request";
 import type {
   AuthLoginResponse,
@@ -19,11 +18,19 @@ import {
 export async function register(
   data: RegisterRequest
 ): Promise<AuthRegisterResponse> {
-  return postJSON<AuthRegisterResponse>("/auth/register", data);
+  return apiRequest<AuthRegisterResponse>("/auth/register", {
+    method: "POST",
+    body: data,
+    skipTenant: true,
+  });
 }
 
 export async function login(data: LoginRequest): Promise<AuthLoginResponse> {
-  return postJSON<AuthLoginResponse>("/auth/login", data);
+  return apiRequest<AuthLoginResponse>("/auth/login", {
+    method: "POST",
+    body: data,
+    skipTenant: true,
+  });
 }
 
 export async function setActiveCompany(

@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type DropdownMenuItem = {
-    label: string;
+    label?: string;
     icon?: ReactNode;
-    onClick: () => void;
+    onClick?: () => void;
     variant?: "default" | "danger";
     disabled?: boolean;
+    type?: "item" | "label" | "separator";
+    content?: ReactNode; // Para contenido personalizado como labels
 };
 
 export type DropdownMenuProps = {
@@ -59,28 +61,50 @@ export function DropdownMenu({
                         align === "right" ? "right-0" : "left-0"
                     )}
                 >
-                    {items.map((item, index) => (
-                        <button
-                            key={index}
-                            type="button"
-                            disabled={item.disabled}
-                            onClick={() => {
-                                item.onClick();
-                                setOpen(false);
-                            }}
-                            className={cn(
-                                "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
-                                item.disabled
-                                    ? "cursor-not-allowed opacity-50"
-                                    : item.variant === "danger"
-                                        ? "text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                        : "text-foreground hover:bg-muted"
-                            )}
-                        >
-                            {item.icon}
-                            {item.label}
-                        </button>
-                    ))}
+                    {items.map((item, index) => {
+                        if (item.type === "separator") {
+                            return (
+                                <div
+                                    key={index}
+                                    className="my-1 h-px bg-border"
+                                />
+                            );
+                        }
+                        if (item.type === "label") {
+                            return (
+                                <div
+                                    key={index}
+                                    className="px-3 py-2 text-xs font-semibold text-muted-foreground"
+                                >
+                                    {item.content || item.label}
+                                </div>
+                            );
+                        }
+                        return (
+                            <button
+                                key={index}
+                                type="button"
+                                disabled={item.disabled || !item.onClick}
+                                onClick={() => {
+                                    item.onClick?.();
+                                    setOpen(false);
+                                }}
+                                className={cn(
+                                    "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                                    !item.onClick
+                                        ? "cursor-default"
+                                        : item.disabled
+                                            ? "cursor-not-allowed opacity-50"
+                                            : item.variant === "danger"
+                                                ? "text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                : "text-foreground hover:bg-muted"
+                                )}
+                            >
+                                {item.icon}
+                                {item.content || item.label}
+                            </button>
+                        );
+                    })}
                 </div>
             )}
         </div>

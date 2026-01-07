@@ -69,7 +69,7 @@ export default function LoginPage() {
           className="h-6 w-6"
           priority
         />
-        <span className="text-lg font-medium tracking-tight text-gray-900">
+        <span className="text-lg font-medium tracking-tight text-gray-900 dark:text-gray-100">
           Ganadex
         </span>
       </div>
@@ -79,10 +79,10 @@ export default function LoginPage() {
         <div className="mx-auto w-full max-w-sm">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="font-serif text-4xl font-light italic tracking-tight text-gray-900">
+            <h1 className="font-serif text-4xl font-light italic tracking-tight text-gray-900 dark:text-gray-100">
               Bienvenido de vuelta!
             </h1>
-            <p className="mt-3 text-sm text-gray-500">
+            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
               Ingresa tus credenciales para acceder a tu panel de control
             </p>
           </div>
@@ -92,7 +92,7 @@ export default function LoginPage() {
             <div className="space-y-2">
               <Label
                 htmlFor="email"
-                className="text-sm font-medium text-gray-900"
+                className="text-sm font-medium text-gray-900 dark:text-gray-100"
               >
                 Correo electrónico
               </Label>
@@ -101,18 +101,18 @@ export default function LoginPage() {
                 type="email"
                 placeholder="Ingresa tu correo"
                 autoComplete="email"
-                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0"
+                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
                 {...register("email")}
               />
               {errors.email && (
-                <p className="text-xs text-red-500">{errors.email.message}</p>
+                <p className="text-xs text-red-500 dark:text-red-400">{errors.email.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
               <Label
                 htmlFor="password"
-                className="text-sm font-medium text-gray-900"
+                className="text-sm font-medium text-gray-900 dark:text-gray-100"
               >
                 Contraseña
               </Label>
@@ -121,11 +121,11 @@ export default function LoginPage() {
                 type="password"
                 placeholder="••••••••"
                 autoComplete="current-password"
-                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0"
+                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
                 {...register("password")}
               />
               {errors.password && (
-                <p className="text-xs text-red-500">
+                <p className="text-xs text-red-500 dark:text-red-400">
                   {errors.password.message}
                 </p>
               )}
@@ -140,18 +140,18 @@ export default function LoginPage() {
                   onCheckedChange={(checked) =>
                     setRememberMe(checked as boolean)
                   }
-                  className="border-gray-300 data-[state=checked]:border-gray-900 data-[state=checked]:bg-gray-900"
+                  className="border-gray-300 data-[state=checked]:border-gray-900 data-[state=checked]:bg-gray-900 dark:border-gray-600 dark:data-[state=checked]:border-gray-100 dark:data-[state=checked]:bg-gray-100"
                 />
                 <Label
                   htmlFor="remember"
-                  className="cursor-pointer text-sm text-gray-600"
+                  className="cursor-pointer text-sm text-gray-600 dark:text-gray-400"
                 >
                   Recordarme
                 </Label>
               </div>
               <Link
                 href="/forgot-password"
-                className="text-sm text-gray-600 transition-colors hover:text-gray-900"
+                className="text-sm text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
               >
                 ¿Olvidaste tu contraseña?
               </Link>
@@ -161,7 +161,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-12 w-full bg-gray-900 font-medium text-white transition-all hover:bg-gray-800 disabled:opacity-50"
+              className="h-12 w-full bg-gray-900 font-medium text-white transition-all hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
             >
               {isSubmitting ? (
                 <>
@@ -179,10 +179,10 @@ export default function LoginPage() {
 
       {/* Footer */}
       <div className="flex items-center justify-center gap-1 pt-8 text-sm">
-        <span className="text-gray-500">¿No tienes una cuenta?</span>
+        <span className="text-gray-500 dark:text-gray-400">¿No tienes una cuenta?</span>
         <Link
           href="/register"
-          className="font-medium text-gray-900 underline underline-offset-4 transition-colors hover:text-gray-700"
+          className="font-medium text-gray-900 underline underline-offset-4 transition-colors hover:text-gray-700 dark:text-gray-100 dark:hover:text-gray-300"
         >
           Regístrate
         </Link>

@@ -22,7 +22,12 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CompanySwitcher } from "@/components/ui/company-switcher";
+import { GlobalSearch } from "@/components/ui/global-search";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { UserMenu } from "@/components/ui/user-menu";
+import { NotificationsMenu } from "@/components/ui/notifications-menu";
+import { QuickActions } from "@/components/ui/quick-actions";
 import { cn } from "@/lib/utils";
 import {
   getStoredSession,
@@ -192,7 +197,7 @@ export default function DashboardLayout({
       .toUpperCase()
     : "GD";
 
-  if (loading) {
+  if (loading || !session) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -205,30 +210,47 @@ export default function DashboardLayout({
     <div className="min-h-screen bg-background">
       <div className="lg:pl-72">
         {/* Mobile Header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/80 px-4 py-3 backdrop-blur-sm lg:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          <p className="text-sm font-semibold text-foreground">
-            {empresaActiva?.nombre ?? "Ganadex"}
-          </p>
-          <div className="flex items-center gap-1">
-            <ThemeToggle size="icon-sm" />
-            <Button variant="ghost" size="icon-sm" onClick={logout}>
-              <LogOut className="h-4 w-4" />
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 px-4 py-3 shadow-sm lg:hidden">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
             </Button>
+            <div className="flex-1 min-w-0">
+              <CompanySwitcher
+                empresas={session.empresas}
+                empresaActivaId={session.empresa_activa_id}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <QuickActions />
+            <NotificationsMenu />
+            <ThemeToggle size="icon-sm" />
+            {session.user && <UserMenu user={session.user} />}
           </div>
         </header>
 
         {/* Desktop Header */}
-        <header className="sticky top-0 z-30 hidden items-center justify-between border-b border-border bg-background/80 px-8 py-4 backdrop-blur-sm lg:flex">
-          <div />
+        <header className="sticky top-0 z-30 hidden items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 px-6 py-3 shadow-sm lg:flex">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <CompanySwitcher
+              empresas={session.empresas}
+              empresaActivaId={session.empresa_activa_id}
+            />
+            <div className="flex-1 max-w-2xl">
+              <GlobalSearch />
+            </div>
+          </div>
           <div className="flex items-center gap-2">
+            <QuickActions />
+            <div className="h-6 w-px bg-border" />
+            <NotificationsMenu />
             <ThemeToggle />
+            {session.user && <UserMenu user={session.user} />}
           </div>
         </header>
 
@@ -330,6 +352,24 @@ export default function DashboardLayout({
 
         {/* Sidebar Footer */}
         <div className="border-t border-border px-4 py-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-semibold text-primary-foreground ring-1 ring-primary/20">
+              {session.user.nombre
+                .split(" ")
+                .slice(0, 2)
+                .map((part) => part[0])
+                .join("")
+                .toUpperCase()}
+            </div>
+            <div className="flex flex-col min-w-0 flex-1">
+              <p className="text-sm font-medium text-sidebar-foreground truncate">
+                {session.user.nombre}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {session.user.email}
+              </p>
+            </div>
+          </div>
           <Button
             variant="outline"
             className="w-full justify-start gap-2"

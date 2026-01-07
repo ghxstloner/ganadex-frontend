@@ -112,7 +112,7 @@ export default function RegisterPage() {
           className="h-6 w-6"
           priority
         />
-        <span className="text-lg font-medium tracking-tight text-gray-900">
+        <span className="text-lg font-medium tracking-tight text-gray-900 dark:text-gray-100">
           Ganadex
         </span>
       </div>
@@ -122,10 +122,10 @@ export default function RegisterPage() {
         <div className="mx-auto w-full max-w-md">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="font-serif text-4xl font-light italic tracking-tight text-gray-900">
+            <h1 className="font-serif text-4xl font-light italic tracking-tight text-gray-900 dark:text-gray-100">
               Crea tu cuenta
             </h1>
-            <p className="mt-3 text-sm text-gray-500">
+            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
               Configura tu empresa y empieza a operar con claridad
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <Label
                   htmlFor="nombre"
-                  className="text-sm font-medium text-gray-900"
+                  className="text-sm font-medium text-gray-900 dark:text-gray-100"
                 >
                   Nombre
                 </Label>
@@ -145,18 +145,18 @@ export default function RegisterPage() {
                   id="nombre"
                   placeholder="Juan Pérez"
                   autoComplete="name"
-                  className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0"
+                  className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
                   {...register("nombre")}
                 />
                 {errors.nombre && (
-                  <p className="text-xs text-red-500">{errors.nombre.message}</p>
+                  <p className="text-xs text-red-500 dark:text-red-400">{errors.nombre.message}</p>
                 )}
               </div>
 
               <div className="space-y-2">
                 <Label
                   htmlFor="telefono"
-                  className="text-sm font-medium text-gray-900"
+                  className="text-sm font-medium text-gray-900 dark:text-gray-100"
                 >
                   Teléfono
                 </Label>
@@ -164,11 +164,11 @@ export default function RegisterPage() {
                   id="telefono"
                   placeholder="+58912345678"
                   autoComplete="tel"
-                  className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0"
+                  className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
                   {...register("telefono")}
                 />
                 {errors.telefono && (
-                  <p className="text-xs text-red-500">
+                  <p className="text-xs text-red-500 dark:text-red-400">
                     {errors.telefono.message}
                   </p>
                 )}
@@ -179,7 +179,7 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label
                 htmlFor="email"
-                className="text-sm font-medium text-gray-900"
+                className="text-sm font-medium text-gray-900 dark:text-gray-100"
               >
                 Correo electrónico
               </Label>
@@ -188,11 +188,11 @@ export default function RegisterPage() {
                 type="email"
                 placeholder="usuario@empresa.com"
                 autoComplete="email"
-                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0"
+                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
                 {...register("email")}
               />
               {errors.email && (
-                <p className="text-xs text-red-500">{errors.email.message}</p>
+                <p className="text-xs text-red-500 dark:text-red-400">{errors.email.message}</p>
               )}
             </div>
 
@@ -200,7 +200,7 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label
                 htmlFor="password"
-                className="text-sm font-medium text-gray-900"
+                className="text-sm font-medium text-gray-900 dark:text-gray-100"
               >
                 Contraseña
               </Label>
@@ -209,11 +209,11 @@ export default function RegisterPage() {
                 type="password"
                 placeholder="Más de 8 caracteres"
                 autoComplete="new-password"
-                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0"
+                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
                 {...register("password")}
               />
               {errors.password && (
-                <p className="text-xs text-red-500">
+                <p className="text-xs text-red-500 dark:text-red-400">
                   {errors.password.message}
                 </p>
               )}
@@ -223,7 +223,7 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label
                 htmlFor="confirmPassword"
-                className="text-sm font-medium text-gray-900"
+                className="text-sm font-medium text-gray-900 dark:text-gray-100"
               >
                 Confirmar contraseña
               </Label>
@@ -232,21 +232,21 @@ export default function RegisterPage() {
                 type="password"
                 placeholder="Repite tu contraseña"
                 autoComplete="new-password"
-                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0"
+                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
                 {...register("confirmPassword")}
               />
               {errors.confirmPassword && (
-                <p className="text-xs text-red-500">
+                <p className="text-xs text-red-500 dark:text-red-400">
                   {errors.confirmPassword.message}
                 </p>
               )}
             </div>
 
             {/* Empresa section */}
-            <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-5">
+            <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-5 dark:border-gray-700 dark:bg-gray-800/50">
               <div className="mb-4">
-                <h3 className="text-sm font-semibold text-gray-900">Empresa</h3>
-                <p className="mt-1 text-xs text-gray-500">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Empresa</h3>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Únete a una empresa existente o crea una nueva
                 </p>
               </div>
@@ -255,7 +255,7 @@ export default function RegisterPage() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="empresa_id"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
                     Unirme a empresa
                   </Label>
@@ -263,11 +263,11 @@ export default function RegisterPage() {
                     id="empresa_id"
                     placeholder="ID de empresa"
                     disabled={disableEmpresaId}
-                    className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 disabled:opacity-40"
+                    className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 disabled:opacity-40 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-500 dark:disabled:opacity-30"
                     {...register("empresa_id")}
                   />
                   {errors.empresa_id && (
-                    <p className="text-xs text-red-500">
+                    <p className="text-xs text-red-500 dark:text-red-400">
                       {errors.empresa_id.message}
                     </p>
                   )}
@@ -276,7 +276,7 @@ export default function RegisterPage() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="empresa_nombre"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
                     Crear nueva empresa
                   </Label>
@@ -284,11 +284,11 @@ export default function RegisterPage() {
                     id="empresa_nombre"
                     placeholder="Nombre de empresa"
                     disabled={disableEmpresaNombre}
-                    className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 disabled:opacity-40"
+                    className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 disabled:opacity-40 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-500 dark:disabled:opacity-30"
                     {...register("empresa_nombre")}
                   />
                   {errors.empresa_nombre && (
-                    <p className="text-xs text-red-500">
+                    <p className="text-xs text-red-500 dark:text-red-400">
                       {errors.empresa_nombre.message}
                     </p>
                   )}
@@ -300,7 +300,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-12 w-full bg-gray-900 font-medium text-white transition-all hover:bg-gray-800 disabled:opacity-50"
+              className="h-12 w-full bg-gray-900 font-medium text-white transition-all hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
             >
               {isSubmitting ? (
                 <>
@@ -318,10 +318,10 @@ export default function RegisterPage() {
 
       {/* Footer */}
       <div className="flex items-center justify-center gap-1 pt-4 text-sm">
-        <span className="text-gray-500">¿Ya tienes una cuenta?</span>
+        <span className="text-gray-500 dark:text-gray-400">¿Ya tienes una cuenta?</span>
         <Link
           href="/login"
-          className="font-medium text-gray-900 underline underline-offset-4 transition-colors hover:text-gray-700"
+          className="font-medium text-gray-900 underline underline-offset-4 transition-colors hover:text-gray-700 dark:text-gray-100 dark:hover:text-gray-300"
         >
           Inicia sesión
         </Link>
