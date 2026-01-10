@@ -134,6 +134,8 @@ export type Potrero = {
     id_finca?: string | null;
     finca_nombre?: string | null;
     area_hectareas?: number | null;
+    area_m2?: number | null;
+    geometry?: Array<{ lat: number; lng: number }> | null;
     capacidad_animales?: number | null;
     tipo_pasto?: string | null;
     estado: "disponible" | "ocupado" | "mantenimiento" | "inactivo";
@@ -146,6 +148,8 @@ export type CreatePotreroDTO = {
     nombre: string;
     id_finca?: string;
     area_hectareas?: number;
+    area_m2?: number;
+    geometry?: Array<{ lat: number; lng: number }>;
     capacidad_animales?: number;
     tipo_pasto?: string;
     estado?: string;

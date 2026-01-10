@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Loader2, Pencil, Plus, Trash2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,12 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MotionFadeSlide } from "@/components/ui/animate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NoPermission from "@/components/no-permission";
+
+// Dynamic import para evitar SSR
+const PotreroMapEditor = dynamic(
+  () => import("@/components/potrero-map-editor"),
+  { ssr: false }
+);
 
 import {
   fetchPotreros,
@@ -47,6 +54,8 @@ const potreroSchema = z.object({
   nombre: z.string().min(1, "Ingresa el nombre"),
   id_finca: z.string().optional(),
   area_hectareas: z.any().optional(),
+  area_m2: z.any().optional(),
+  geometry: z.array(z.object({ lat: z.number(), lng: z.number() })).optional(),
   capacidad_animales: z.any().optional(),
   tipo_pasto: z.string().optional(),
   estado: z.string().optional(),
@@ -102,6 +111,7 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [mapEditorOpen, setMapEditorOpen] = useState(false);
   const [selected, setSelected] = useState<Potrero | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -146,6 +156,8 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
       estado: estadosPotreros.length > 0 ? estadosPotreros[0].codigo : "",
       id_finca: "",
       area_hectareas: undefined,
+      area_m2: undefined,
+      geometry: undefined,
       capacidad_animales: undefined,
       tipo_pasto: "",
       notas: "",
@@ -159,12 +171,25 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
       nombre: p.nombre,
       id_finca: p.id_finca ?? "",
       area_hectareas: p.area_hectareas ?? undefined,
+      area_m2: p.area_m2 ?? undefined,
+      geometry: p.geometry ?? undefined,
       capacidad_animales: p.capacidad_animales ?? undefined,
       tipo_pasto: p.tipo_pasto ?? "",
       estado: p.estado,
       notas: p.notas ?? "",
     });
     setEditOpen(true);
+  };
+
+  const handleMapEditorComplete = (geometry: Array<{ lat: number; lng: number }>, areaM2: number, areaHa: number) => {
+    form.setValue("geometry", geometry);
+    form.setValue("area_m2", areaM2);
+    // Actualizar también area_hectareas si está vacío o si el usuario quiere
+    if (!form.getValues("area_hectareas") || form.getValues("area_hectareas") === "") {
+      form.setValue("area_hectareas", areaHa);
+    }
+    setMapEditorOpen(false);
+    toast.success("Polígono guardado. Área: " + areaHa.toFixed(4) + " ha");
   };
 
   const openDelete = (p: Potrero) => {
@@ -388,6 +413,25 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
               />
             </div>
           </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Modelar en Google Maps</label>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setMapEditorOpen(true)}
+              className="w-full"
+            >
+              <MapPin className="h-4 w-4 mr-2" />
+              {form.watch("geometry") ? "Editar polígono del potrero" : "Modelar potrero en Google Maps"}
+            </Button>
+            {form.watch("geometry") && form.watch("area_m2") && (
+              <p className="text-xs text-muted-foreground">
+                Polígono configurado: {Number(form.watch("area_m2")).toLocaleString("es-CO", { maximumFractionDigits: 2 })} m²
+                {" • "}
+                {Number(form.watch("area_m2")) / 10000} ha
+              </p>
+            )}
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Área (ha)</label>
@@ -411,6 +455,21 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
             <Button type="submit" disabled={submitting}>{submitting && <Loader2 className="h-4 w-4 animate-spin" />}Guardar</Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal del editor de mapas */}
+      <Modal
+        open={mapEditorOpen}
+        onClose={() => setMapEditorOpen(false)}
+        title="Modelar Potrero en Google Maps"
+        className="max-w-4xl"
+      >
+        <PotreroMapEditor
+          initialGeometry={form.watch("geometry")}
+          onPolygonComplete={handleMapEditorComplete}
+          onClose={() => setMapEditorOpen(false)}
+          apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
+        />
       </Modal>
 
       <ConfirmDialog open={deleteOpen} onClose={() => setDeleteOpen(false)} onConfirm={handleDelete} title="Eliminar potrero" description={`¿Eliminar "${selected?.nombre}"?`} loading={submitting} />

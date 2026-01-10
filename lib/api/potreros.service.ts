@@ -25,7 +25,7 @@ function buildQueryString(query: Record<string, unknown>): string {
 }
 
 function normalizePotreroBody(data: any) {
-    const body: Record<string, string> = {};
+    const body: Record<string, any> = {};
 
     // id_finca es requerido por el backend
     if (data?.id_finca && data.id_finca !== "" && data.id_finca !== "__none__") {
@@ -38,6 +38,14 @@ function normalizePotreroBody(data: any) {
 
     if (data?.area_hectareas !== undefined && data?.area_hectareas !== null && data?.area_hectareas !== "") {
         body.area_hectareas = String(data.area_hectareas);
+    }
+
+    if (data?.area_m2 !== undefined && data?.area_m2 !== null && data?.area_m2 !== "") {
+        body.area_m2 = String(data.area_m2);
+    }
+
+    if (data?.geometry && Array.isArray(data.geometry) && data.geometry.length > 0) {
+        body.geometry = data.geometry;
     }
 
     if (data?.id_tipo_potrero && data.id_tipo_potrero !== "" && data.id_tipo_potrero !== "__none__") {
