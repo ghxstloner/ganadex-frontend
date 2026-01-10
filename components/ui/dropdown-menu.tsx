@@ -21,6 +21,7 @@ export type DropdownMenuProps = {
     trigger?: ReactNode;
     align?: "left" | "right";
     className?: string;
+    collisionPadding?: number;
 };
 
 export function DropdownMenu({
@@ -28,6 +29,7 @@ export function DropdownMenu({
     trigger,
     align = "right",
     className,
+    collisionPadding = 0,
 }: DropdownMenuProps) {
     const [open, setOpen] = useState(false);
     const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
@@ -38,16 +40,39 @@ export function DropdownMenu({
         if (triggerRef.current) {
             const rect = triggerRef.current.getBoundingClientRect();
             const menuWidth = 160; // min-w-[160px]
-            // Using getBoundingClientRect which returns viewport coordinates
-            // Since we're using position: fixed, we use viewport coordinates directly
-            setPosition({
-                top: rect.bottom + 4,
-                left: align === "right" 
-                    ? rect.right - menuWidth
-                    : rect.left,
-            });
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+
+            // Use a conservative estimate for menu height
+            const estimatedMenuHeight = 120; // Conservative estimate for most dropdowns
+
+            let top = rect.bottom + 4; // Default: below the button with small gap
+            let left = align === "right"
+                ? rect.right - menuWidth
+                : rect.left;
+
+            // Only reposition if there's clearly not enough space below
+            const spaceBelow = viewportHeight - rect.bottom - 4;
+            if (spaceBelow < estimatedMenuHeight + collisionPadding) {
+                // Not enough space below, position above the button
+                top = rect.top - estimatedMenuHeight - 4;
+                // Ensure it doesn't go off-screen at the top
+                if (top < collisionPadding) {
+                    top = Math.max(collisionPadding, rect.bottom + 4);
+                }
+            }
+
+            // Collision detection for horizontal positioning
+            if (left + menuWidth + collisionPadding > viewportWidth) {
+                left = viewportWidth - menuWidth - collisionPadding;
+            }
+            if (left < collisionPadding) {
+                left = collisionPadding;
+            }
+
+            setPosition({ top, left });
         }
-    }, [align]);
+    }, [align, collisionPadding]);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {

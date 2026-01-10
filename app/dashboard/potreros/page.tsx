@@ -7,6 +7,8 @@ import { z } from "zod";
 import dynamic from "next/dynamic";
 import { Loader2, Pencil, Plus, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -221,7 +223,7 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
     form.reset({
       nombre: p.nombre,
       id_finca: p.id_finca ?? "",
-      area_hectareas: p.area_hectareas ?? undefined,
+      area_hectareas: p.area_hectareas ? Math.round(p.area_hectareas * 100) / 100 : undefined,
       area_m2: p.area_m2 ?? undefined,
       geometry: p.geometry ?? undefined,
       capacidad_animales: p.capacidad_animales ?? undefined,
@@ -239,7 +241,7 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
     form.reset({
       nombre: p.nombre,
       id_finca: p.id_finca ?? "",
-      area_hectareas: p.area_hectareas ?? undefined,
+      area_hectareas: p.area_hectareas ? Math.round(p.area_hectareas * 100) / 100 : undefined,
       area_m2: p.area_m2 ?? undefined,
       geometry: p.geometry ?? undefined,
       capacidad_animales: p.capacidad_animales ?? undefined,
@@ -264,11 +266,12 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
     areaM2: number,
     areaHa: number
   ) => {
+    const roundedAreaHa = Math.round(areaHa * 100) / 100; // Redondear a 2 decimales
     form.setValue("geometry", geometry, { shouldDirty: true, shouldValidate: false });
     form.setValue("area_m2", areaM2, { shouldDirty: true, shouldValidate: false });
-    form.setValue("area_hectareas", areaHa, { shouldDirty: true, shouldValidate: false });
+    form.setValue("area_hectareas", roundedAreaHa, { shouldDirty: true, shouldValidate: false });
 
-    toast.success(`Polígono guardado. Área: ${areaHa.toFixed(4)} ha`);
+    toast.success(`Polígono guardado. Área: ${roundedAreaHa.toFixed(2)} ha`);
   };
 
   const openDelete = (p: Potrero) => {
@@ -383,11 +386,21 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
         ),
     },
     {
+      key: "created_at",
+      header: "Creado",
+      render: (p) => p.created_at ? (
+        <span className="text-sm text-muted-foreground">
+          {format(new Date(p.created_at), "MMM d, yyyy", { locale: es })}
+        </span>
+      ) : "—",
+    },
+    {
       key: "actions",
       header: "",
       className: "text-right",
       render: (p) => (
         <DropdownMenu
+          collisionPadding={10}
           items={[
             { label: "Ver", icon: <Eye className="h-4 w-4" />, onClick: () => openView(p) },
             ...(canEdit
@@ -426,15 +439,17 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
         )}
       </div>
 
-      <DataTable
-        columns={columns}
-        data={potreros}
-        keyExtractor={(p) => p.id}
-        loading={loading}
-        error={error}
-        onRetry={loadData}
-        emptyState={{ title: "Sin potreros" }}
-      />
+      <div className="rounded-md border overflow-hidden">
+        <DataTable
+          columns={columns}
+          data={potreros}
+          keyExtractor={(p) => p.id}
+          loading={loading}
+          error={error}
+          onRetry={loadData}
+          emptyState={{ title: "Sin potreros" }}
+        />
+      </div>
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       {/* ✅ Modal unificado */}
@@ -541,7 +556,7 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
                   <label className="text-sm font-medium">Área (ha)</label>
                   <Input
                     type="number"
-                    step="0.0001"
+                    step="0.01"
                     {...form.register("area_hectareas")}
                     disabled={isView}
                   />

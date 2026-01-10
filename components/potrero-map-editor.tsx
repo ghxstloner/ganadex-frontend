@@ -6,21 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Loader2, MapPin, RotateCcw, Edit2, Layers } from "lucide-react";
 import { toast } from "sonner";
 
-const containerStyle = {
-  width: "100%",
-  height: "500px",
-};
-
-const defaultCenter = {
-  lat: 4.6097, // Bogotá
-  lng: -74.0817,
-};
-
+// Estilos y configuraciones
+const containerStyle = { width: "100%", height: "500px" };
+const defaultCenter = { lat: 4.6097, lng: -74.0817 }; // Bogotá fallback
 const libraries: ("drawing" | "geometry")[] = ["drawing", "geometry"];
 
+// Interfaces
 export interface PotreroGeometry {
   lat: number;
   lng: number;
+}
+
+export interface ExistingPolygon {
+  id: string;
+  nombre: string;
+  geometry?: PotreroGeometry[];
 }
 
 export interface PotreroMapEditorProps {
@@ -28,22 +28,24 @@ export interface PotreroMapEditorProps {
   onPolygonComplete: (geometry: PotreroGeometry[], areaM2: number, areaHa: number) => void;
   onClose: () => void;
   apiKey: string;
-
-  existingPolygons?: Array<{
-    id: string;
-    nombre: string;
-    geometry?: PotreroGeometry[]; // ✅ nunca null
-  }>;
-
+  existingPolygons?: ExistingPolygon[];
   readOnly?: boolean;
 }
 
+// Helpers
 function calculatePolygonArea(
   paths: google.maps.LatLng[],
-  geometry: typeof google.maps.geometry | undefined
+  geometryLib: typeof google.maps.geometry | undefined
 ): number {
-  if (!geometry || paths.length < 3) return 0;
-  return Math.abs(geometry.spherical.computeArea(paths));
+  if (!geometryLib || paths.length < 3) return 0;
+  return Math.abs(geometryLib.spherical.computeArea(paths));
+}
+
+function getPolygonCenter(paths: PotreroGeometry[]): google.maps.LatLng | null {
+  if (!paths || paths.length === 0) return null;
+  const bounds = new google.maps.LatLngBounds();
+  paths.forEach((p) => bounds.extend(new google.maps.LatLng(p.lat, p.lng)));
+  return bounds.getCenter();
 }
 
 function PotreroMapEditorComponent({
@@ -60,10 +62,10 @@ function PotreroMapEditorComponent({
   const [isEditing, setIsEditing] = useState(false);
   const [mapType, setMapType] = useState<"satellite" | "hybrid">("hybrid");
 
-  // refs
+  // Referencias para limpieza
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const editablePolygonRef = useRef<google.maps.Polygon | null>(null);
-  const existingPolygonsRef = useRef<google.maps.Polygon[]>([]);
+  const existingOverlaysRef = useRef<{ poly: google.maps.Polygon; label: google.maps.Marker }[]>([]);
   const listenersRef = useRef<google.maps.MapsEventListener[]>([]);
 
   const currentInitial = useMemo(() => initialGeometry ?? [], [initialGeometry]);
@@ -74,69 +76,87 @@ function PotreroMapEditorComponent({
     libraries,
   });
 
-  const clearListeners = useCallback(() => {
+  // Limpieza de objetos del mapa
+  const clearMapObjects = useCallback(() => {
+    // Listeners
     listenersRef.current.forEach((l) => l.remove());
     listenersRef.current = [];
-  }, []);
 
-  const clearExistingPolygons = useCallback(() => {
-    existingPolygonsRef.current.forEach((p) => p.setMap(null));
-    existingPolygonsRef.current = [];
-  }, []);
+    // Polígonos existentes y etiquetas
+    existingOverlaysRef.current.forEach(({ poly, label }) => {
+      poly.setMap(null);
+      label.setMap(null);
+    });
+    existingOverlaysRef.current = [];
 
-  const clearEditablePolygon = useCallback(() => {
-    clearListeners();
+    // Polígono editable
     if (editablePolygonRef.current) {
       editablePolygonRef.current.setMap(null);
       editablePolygonRef.current = null;
     }
-    setIsEditing(false);
-  }, [clearListeners]);
 
-  const clearDrawingManager = useCallback(() => {
+    // Drawing Manager
     if (drawingManagerRef.current) {
       drawingManagerRef.current.setMap(null);
       drawingManagerRef.current = null;
     }
+    
+    setIsEditing(false);
   }, []);
 
-  // Render inicial + vecinos cada vez que haya map y cambie initialGeometry/existingPolygons/readOnly
+  // Lógica Principal de Renderizado
   useEffect(() => {
     if (!map || !isLoaded) return;
 
-    // limpiar todo previo
-    clearExistingPolygons();
-    clearEditablePolygon();
-    clearDrawingManager();
+    clearMapObjects();
 
-    // 1) Dibujar vecinos (read-only)
+    // 1. Renderizar Polígonos Existentes (Contexto)
     if (existingPolygons.length > 0) {
-      const rendered: google.maps.Polygon[] = [];
+      const overlays: { poly: google.maps.Polygon; label: google.maps.Marker }[] = [];
 
       existingPolygons.forEach((potrero) => {
         if (!potrero.geometry || potrero.geometry.length < 3) return;
 
         const path = potrero.geometry.map((p) => new google.maps.LatLng(p.lat, p.lng));
 
+        // Dibujar polígono
         const poly = new google.maps.Polygon({
           paths: path,
-          fillColor: "#888888",
-          fillOpacity: 0.25,
-          strokeColor: "#666666",
+          fillColor: "#9ca3af", // Gris neutro
+          fillOpacity: 0.3,
+          strokeColor: "#4b5563",
           strokeWeight: 1,
           clickable: false,
-          editable: false,
-          draggable: false,
+          map: map,
+          zIndex: 1,
         });
 
-        poly.setMap(map);
-        rendered.push(poly);
+        // Crear Label (Marker invisible con texto)
+        const center = getPolygonCenter(potrero.geometry!);
+        const labelMarker = new google.maps.Marker({
+          position: center!,
+          map: map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 0, // Invisible
+          },
+          label: {
+            text: potrero.nombre,
+            color: "white",
+            fontWeight: "bold",
+            fontSize: "12px",
+            className: "map-label-shadow", // Clase CSS opcional para sombra
+          },
+          zIndex: 10,
+        });
+
+        overlays.push({ poly, label: labelMarker });
       });
 
-      existingPolygonsRef.current = rendered;
+      existingOverlaysRef.current = overlays;
     }
 
-    // 2) Dibujar polígono editable/visible inicial si existe
+    // 2. Manejar Polígono "Activo" (Edición o Visualización del actual)
     if (currentInitial.length >= 3) {
       const path = currentInitial.map((p) => new google.maps.LatLng(p.lat, p.lng));
 
@@ -144,36 +164,56 @@ function PotreroMapEditorComponent({
         paths: path,
         editable: false,
         draggable: false,
-        fillColor: "#3b82f6",
-        fillOpacity: 0.35,
-        strokeColor: "#1e40af",
+        fillColor: "#3b82f6", // Azul primario
+        fillOpacity: 0.4,
+        strokeColor: "#1d4ed8",
         strokeWeight: 2,
+        map: map,
+        zIndex: 20, // Por encima de los vecinos
       });
 
-      poly.setMap(map);
       editablePolygonRef.current = poly;
 
-      // calcular área
+      // Calcular área inicial
       const area = calculatePolygonArea(path, window.google?.maps?.geometry);
       setAreaM2(area);
       setAreaHa(area / 10000);
 
-      // fit bounds
+      // Centrar mapa en el polígono actual
       const bounds = new google.maps.LatLngBounds();
       path.forEach((ll) => bounds.extend(ll));
       map.fitBounds(bounds);
-
-      return;
+    } else {
+      // 3. Si no hay polígono inicial, centrar según contexto
+      if (existingPolygons.length > 0) {
+        // Centrar en el conjunto de polígonos existentes
+        const bounds = new google.maps.LatLngBounds();
+        existingPolygons.forEach(p => {
+            p.geometry?.forEach(c => bounds.extend(new google.maps.LatLng(c.lat, c.lng)));
+        });
+        if (!bounds.isEmpty()) {
+            map.fitBounds(bounds);
+        } else {
+            map.setCenter(defaultCenter);
+            map.setZoom(15);
+        }
+      } else {
+        map.setCenter(defaultCenter);
+        map.setZoom(6);
+      }
     }
 
-    // 3) Si no hay polígono inicial:
-    map.setCenter(defaultCenter);
-    map.setZoom(6);
+    // 4. Configurar DrawingManager (solo si no es readOnly)
+    if (!readOnly && currentInitial.length < 3) {
+      initDrawingManager(map);
+    }
 
-    // si readOnly, no permitir dibujar
-    if (readOnly) return;
+    return () => {
+        // Cleanup manejado por clearMapObjects al inicio del efecto
+    };
+  }, [map, isLoaded, currentInitial, existingPolygons, readOnly, clearMapObjects]);
 
-    // 4) Crear DrawingManager para dibujar (create)
+  const initDrawingManager = (mapInstance: google.maps.Map) => {
     const drawingMgr = new google.maps.drawing.DrawingManager({
       drawingMode: google.maps.drawing.OverlayType.POLYGON,
       drawingControl: true,
@@ -183,55 +223,47 @@ function PotreroMapEditorComponent({
       },
       polygonOptions: {
         fillColor: "#3b82f6",
-        fillOpacity: 0.35,
-        strokeColor: "#1e40af",
+        fillOpacity: 0.4,
+        strokeColor: "#1d4ed8",
         strokeWeight: 2,
         clickable: false,
-        editable: false,
-        draggable: false,
+        editable: true, 
+        zIndex: 20,
       },
+      map: mapInstance,
     });
 
-    drawingMgr.setMap(map);
     drawingManagerRef.current = drawingMgr;
 
     const listener = drawingMgr.addListener("polygoncomplete", (poly: google.maps.Polygon) => {
-      drawingMgr.setDrawingMode(null);
-
-      // si ya había uno, lo removemos
-      clearEditablePolygon();
-
+      drawingMgr.setDrawingMode(null); // Desactivar modo dibujo para evitar múltiples polígonos
+      
+      // Si existía uno previo (caso borde), borrarlo
+      if (editablePolygonRef.current) editablePolygonRef.current.setMap(null);
+      
       editablePolygonRef.current = poly;
+      
+      updateMetrics(poly);
+      
+      // Añadir listeners para cambios en vértices
+      const path = poly.getPath();
+      listenersRef.current.push(path.addListener("set_at", () => updateMetrics(poly)));
+      listenersRef.current.push(path.addListener("insert_at", () => updateMetrics(poly)));
+      listenersRef.current.push(path.addListener("remove_at", () => updateMetrics(poly)));
 
-      const paths = poly.getPath().getArray();
-      const geometry: PotreroGeometry[] = paths.map((latlng) => ({
-        lat: latlng.lat(),
-        lng: latlng.lng(),
-      }));
-
-      const area = calculatePolygonArea(paths, window.google?.maps?.geometry);
-      setAreaM2(area);
-      setAreaHa(area / 10000);
-
-      toast.success("Polígono dibujado correctamente");
+      toast.success("Polígono creado. Puedes ajustar los puntos.");
+      setIsEditing(true);
     });
 
     listenersRef.current.push(listener);
+  };
 
-    // cleanup si cambia algo
-    return () => {
-      // no-op aquí: el efecto al re-ejecutar ya limpia arriba
-    };
-  }, [
-    map,
-    isLoaded,
-    currentInitial,
-    existingPolygons,
-    readOnly,
-    clearExistingPolygons,
-    clearEditablePolygon,
-    clearDrawingManager,
-  ]);
+  const updateMetrics = (poly: google.maps.Polygon) => {
+    const paths = poly.getPath().getArray();
+    const area = calculatePolygonArea(paths, window.google?.maps?.geometry);
+    setAreaM2(area);
+    setAreaHa(area / 10000);
+  };
 
   const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
@@ -241,91 +273,25 @@ function PotreroMapEditorComponent({
   const handleEdit = useCallback(() => {
     const poly = editablePolygonRef.current;
     if (!poly) return;
-
     poly.setEditable(true);
-    poly.setDraggable(false);
     setIsEditing(true);
-
+    
+    // Reconectar listeners si se habían perdido
     const path = poly.getPath();
+    google.maps.event.clearListeners(path, 'insert_at');
+    google.maps.event.clearListeners(path, 'set_at');
+    google.maps.event.clearListeners(path, 'remove_at');
+    
+    path.addListener("set_at", () => updateMetrics(poly));
+    path.addListener("insert_at", () => updateMetrics(poly));
+    path.addListener("remove_at", () => updateMetrics(poly));
 
-    const updateArea = () => {
-      const pts = path.getArray();
-      const area = calculatePolygonArea(pts, window.google?.maps?.geometry);
-      setAreaM2(area);
-      setAreaHa(area / 10000);
-    };
-
-    listenersRef.current.push(path.addListener("set_at", updateArea));
-    listenersRef.current.push(path.addListener("insert_at", updateArea));
-    listenersRef.current.push(path.addListener("remove_at", updateArea));
-
-    toast.info("Modo edición activado. Ajusta los puntos del polígono.");
+    toast.info("Modo edición activado");
   }, []);
-
-  const handleReset = useCallback(() => {
-    if (readOnly) return;
-    clearEditablePolygon();
-    setAreaM2(0);
-    setAreaHa(0);
-
-    if (map) {
-      // re-habilitar modo dibujo si existe drawing manager
-      if (!drawingManagerRef.current) {
-        const drawingMgr = new google.maps.drawing.DrawingManager({
-          drawingMode: google.maps.drawing.OverlayType.POLYGON,
-          drawingControl: true,
-          drawingControlOptions: {
-            position: google.maps.ControlPosition.TOP_CENTER,
-            drawingModes: [google.maps.drawing.OverlayType.POLYGON],
-          },
-          polygonOptions: {
-            fillColor: "#3b82f6",
-            fillOpacity: 0.35,
-            strokeColor: "#1e40af",
-            strokeWeight: 2,
-            clickable: false,
-            editable: false,
-            draggable: false,
-          },
-        });
-
-        drawingMgr.setMap(map);
-        drawingManagerRef.current = drawingMgr;
-
-        const listener = drawingMgr.addListener("polygoncomplete", (poly: google.maps.Polygon) => {
-          drawingMgr.setDrawingMode(null);
-
-          clearEditablePolygon();
-          editablePolygonRef.current = poly;
-
-          const paths = poly.getPath().getArray();
-          const geometry: PotreroGeometry[] = paths.map((latlng) => ({
-            lat: latlng.lat(),
-            lng: latlng.lng(),
-          }));
-
-          const area = calculatePolygonArea(paths, window.google?.maps?.geometry);
-          setAreaM2(area);
-          setAreaHa(area / 10000);
-
-          toast.success("Polígono dibujado correctamente");
-        });
-
-        listenersRef.current.push(listener);
-      } else {
-        drawingManagerRef.current.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
-      }
-    }
-
-    toast.info("Listo para dibujar un nuevo polígono");
-  }, [clearEditablePolygon, map, readOnly]);
 
   const handleSave = useCallback(() => {
     const poly = editablePolygonRef.current;
-    if (!poly) {
-      toast.error("No hay polígono para guardar");
-      return;
-    }
+    if (!poly) return;
 
     const paths = poly.getPath().getArray();
     if (paths.length < 3) {
@@ -339,160 +305,90 @@ function PotreroMapEditorComponent({
     }));
 
     const area = calculatePolygonArea(paths, window.google?.maps?.geometry);
-    onPolygonComplete(geometry, area, area / 10000);
-
-    // dejarlo no editable después de guardar
+    
     poly.setEditable(false);
     setIsEditing(false);
+    
+    onPolygonComplete(geometry, area, area / 10000);
   }, [onPolygonComplete]);
 
-  const toggleMapType = useCallback(() => {
-    const newType = mapType === "satellite" ? "hybrid" : "satellite";
-    setMapType(newType);
-    if (map) map.setMapTypeId(newType);
-  }, [map, mapType]);
+  const handleReset = useCallback(() => {
+    if (readOnly) return;
+    
+    if (editablePolygonRef.current) {
+        editablePolygonRef.current.setMap(null);
+        editablePolygonRef.current = null;
+    }
+    
+    setAreaM2(0);
+    setAreaHa(0);
+    setIsEditing(false);
 
-  // cleanup al desmontar
-  useEffect(() => {
-    return () => {
-      clearListeners();
-      clearExistingPolygons();
-      clearEditablePolygon();
-      clearDrawingManager();
-    };
-  }, [clearListeners, clearExistingPolygons, clearEditablePolygon, clearDrawingManager]);
+    // Reiniciar Drawing Manager
+    if (map) {
+        if (drawingManagerRef.current) {
+            drawingManagerRef.current.setMap(null);
+        }
+        initDrawingManager(map);
+    }
+  }, [map, readOnly]);
 
-  if (loadError) {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 border rounded-lg bg-red-50 border-red-200">
-        <p className="text-red-600 font-medium">Error al cargar Google Maps</p>
-        <p className="text-sm text-red-500 mt-2">Verifica que la API key sea válida</p>
-        <Button variant="ghost" onClick={onClose} className="mt-4">
-          Cerrar
-        </Button>
-      </div>
-    );
+  const toggleMapType = () => {
+      const next = mapType === "satellite" ? "hybrid" : "satellite";
+      setMapType(next);
+      map?.setMapTypeId(next);
   }
 
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center p-8 border rounded-lg">
-        <Loader2 className="h-6 w-6 animate-spin mr-2" />
-        <span>Cargando Google Maps...</span>
-      </div>
-    );
-  }
+  // Render (JSX) se mantiene casi igual, asegurando mostrar errores si falta API Key
+  if (loadError) return <div className="p-4 text-red-500">Error cargando Maps. Revisa la API Key.</div>;
+  if (!isLoaded) return <div className="p-4"><Loader2 className="animate-spin" /> Cargando mapa...</div>;
 
   return (
     <div className="space-y-4">
-      {(areaM2 > 0) && (
-        <div className="flex items-center gap-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <MapPin className="h-5 w-5 text-blue-600" />
-          <div className="flex-1">
-            <div className="text-sm font-medium text-blue-900">Área calculada</div>
-            <div className="text-xs text-blue-700">
-              {areaM2.toLocaleString("es-CO", { maximumFractionDigits: 2 })} m² •{" "}
-              {areaHa.toLocaleString("es-CO", { maximumFractionDigits: 4 })} ha
-            </div>
-          </div>
-        </div>
+      {/* Barra de métricas */}
+      {areaM2 > 0 && (
+         <div className="flex justify-between items-center p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-900">
+            <span className="flex items-center gap-2"><MapPin size={16}/> Área:</span>
+            <span className="font-mono font-bold">
+                {areaHa.toLocaleString('es-CO', {maximumFractionDigits: 2})} Ha
+                <span className="text-xs text-blue-600 font-normal ml-1">({areaM2.toLocaleString('es-CO', {maximumFractionDigits: 0})} m²)</span>
+            </span>
+         </div>
       )}
 
-      <div className="border rounded-lg overflow-hidden relative">
-        <div className="absolute top-2 right-2 z-10 flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={toggleMapType}
-            className="bg-white/95 backdrop-blur-sm shadow-sm hover:bg-white"
-          >
-            <Layers className="h-4 w-4 mr-2" />
-            {mapType === "satellite" ? "Mostrar etiquetas" : "Ocultar etiquetas"}
-          </Button>
-        </div>
-
-        <GoogleMap
-          mapContainerStyle={containerStyle}
-          center={
-            currentInitial?.[0]
-              ? { lat: currentInitial[0].lat, lng: currentInitial[0].lng }
-              : defaultCenter
-          }
-          zoom={currentInitial && currentInitial.length > 0 ? 15 : 6}
-          onLoad={onMapLoad}
-          options={{
-            mapTypeId: mapType,
-            disableDefaultUI: false,
-            zoomControl: true,
-            mapTypeControl: true,
-            mapTypeControlOptions: {
-              style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-              position: google.maps.ControlPosition.TOP_LEFT,
-              mapTypeIds: ["roadmap", "satellite", "hybrid", "terrain"],
-            },
-            streetViewControl: false,
-            fullscreenControl: true,
-          }}
-        />
+      <div className="border rounded-lg overflow-hidden relative h-[500px]">
+         <div className="absolute top-2 right-2 z-10 bg-white rounded shadow p-1">
+            <Button variant="ghost" size="icon" onClick={toggleMapType} title="Cambiar capa">
+                <Layers className="h-4 w-4" />
+            </Button>
+         </div>
+         
+         <GoogleMap
+            mapContainerStyle={containerStyle}
+            zoom={15}
+            onLoad={onMapLoad}
+            options={{
+               mapTypeId: mapType,
+               streetViewControl: false,
+               mapTypeControl: false, // Usamos nuestro botón custom
+               fullscreenControl: true
+            }}
+         />
       </div>
 
       {!readOnly && (
-        <div className="text-sm text-muted-foreground p-3 bg-gray-50 rounded-lg">
-          <p className="font-medium mb-1">Tips:</p>
-          <ul className="list-disc list-inside space-y-1 text-xs">
-            <li>Dibuja un polígono con la herramienta de arriba (modo creación)</li>
-            <li>Si ya existe un polígono, usa “Editar” para ajustar puntos</li>
-            {existingPolygons.length > 0 && (
-              <li className="text-blue-600">
-                Los polígonos grises muestran otros potreros para referencia
-              </li>
+        <div className="flex justify-end gap-2">
+            {isEditing ? (
+                <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700">Guardar Cambios</Button>
+            ) : (
+                editablePolygonRef.current && (
+                    <Button variant="outline" onClick={handleEdit}><Edit2 className="w-4 h-4 mr-2"/> Editar</Button>
+                )
             )}
-          </ul>
-        </div>
-      )}
-
-      {readOnly && (
-        <div className="text-sm text-muted-foreground p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="font-medium mb-1 text-blue-900">Modo de visualización</p>
-          <p className="text-xs text-blue-700">
-            Este potrero se muestra en modo de solo lectura.
-            {existingPolygons.length > 0 && " Los polígonos grises muestran otros potreros para contexto."}
-          </p>
-        </div>
-      )}
-
-      {!readOnly && (
-        <div className="flex justify-between items-center gap-2 pt-2 border-t">
-          <div className="flex gap-2">
-            {!!editablePolygonRef.current && !isEditing && (
-              <Button type="button" variant="outline" onClick={handleEdit} size="sm">
-                <Edit2 className="h-4 w-4 mr-2" />
-                Editar
-              </Button>
+            {editablePolygonRef.current && (
+                <Button variant="destructive" size="icon" onClick={handleReset} title="Borrar"><RotateCcw className="w-4 h-4"/></Button>
             )}
-
-            {!!editablePolygonRef.current && (
-              <Button type="button" variant="outline" onClick={handleReset} size="sm">
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Borrar y volver a dibujar
-              </Button>
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" onClick={onClose} size="sm">
-              Cerrar
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSave}
-              disabled={!editablePolygonRef.current}
-              size="sm"
-            >
-              Guardar polígono
-            </Button>
-          </div>
+             <Button variant="secondary" onClick={onClose}>Cerrar</Button>
         </div>
       )}
     </div>
@@ -500,19 +396,6 @@ function PotreroMapEditorComponent({
 }
 
 export default function PotreroMapEditor(props: PotreroMapEditorProps) {
-  if (!props.apiKey || props.apiKey.trim() === "") {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 border rounded-lg bg-yellow-50 border-yellow-200">
-        <p className="text-yellow-700 font-medium">API Key de Google Maps no configurada</p>
-        <p className="text-sm text-yellow-600 mt-2">
-          Configura NEXT_PUBLIC_GOOGLE_MAPS_API_KEY en las variables de entorno
-        </p>
-        <Button variant="ghost" onClick={props.onClose} className="mt-4">
-          Cerrar
-        </Button>
-      </div>
-    );
-  }
-
-  return <PotreroMapEditorComponent {...props} />;
+    if (!props.apiKey) return <div>Falta API Key</div>;
+    return <PotreroMapEditorComponent {...props} />;
 }
