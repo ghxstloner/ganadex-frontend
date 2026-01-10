@@ -32,6 +32,7 @@ export const endpoints = {
   potreros: "/potreros",
   potreroById: (id: string) => `/potreros/${id}`,
   potrerosEstados: "/potreros/estados/list",
+  potrerosMap: "/potreros/map",
 
   // Lotes
   lotes: "/lotes",

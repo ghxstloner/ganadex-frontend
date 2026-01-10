@@ -13,6 +13,23 @@ export type PotrerosQuery = {
     limit?: number;
 };
 
+export type PotreroMapItem = {
+    id: string;
+    nombre: string;
+    geometry: Array<{ lat: number; lng: number }> | null;
+};
+  
+  export type PotrerosMapResponse = {
+    items: PotreroMapItem[];
+    meta: { limit: number };
+};
+  
+export type PotrerosMapQuery = {
+    id_finca?: string;
+    q?: string;
+    limit?: number; // hasta 500 (backend)
+};
+
 function buildQueryString(query: Record<string, unknown>): string {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(query)) {
@@ -129,3 +146,11 @@ export type EstadoPotrero = {
 export async function fetchEstadosPotreros(): Promise<EstadoPotrero[]> {
     return apiRequest<EstadoPotrero[]>(endpoints.potrerosEstados);
 }
+
+export async function fetchPotrerosMap(
+    query: PotrerosMapQuery = {}
+  ): Promise<PotrerosMapResponse> {
+    const qs = buildQueryString(query);
+    return apiRequest<PotrerosMapResponse>(`${endpoints.potrerosMap}${qs}`);
+}
+  
