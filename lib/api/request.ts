@@ -122,6 +122,17 @@ export async function apiRequest<TResponse>(
     return body.data as TResponse;
   }
 
+  // Handle direct paginated response: {data: [...], meta: {...}}
+  if (
+    body &&
+    typeof body === "object" &&
+    "data" in body &&
+    "meta" in body &&
+    Array.isArray(body.data)
+  ) {
+    return { items: body.data, meta: body.meta } as TResponse;
+  }
+
   return body as TResponse;
 }
 

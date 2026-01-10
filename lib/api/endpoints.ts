@@ -31,6 +31,7 @@ export const endpoints = {
   // Potreros
   potreros: "/potreros",
   potreroById: (id: string) => `/potreros/${id}`,
+  potrerosEstados: "/potreros/estados/list",
 
   // Lotes
   lotes: "/lotes",
@@ -69,7 +70,7 @@ export const endpoints = {
   finanzasCategoriaById: (id: string) => `/finanzas/categorias/${id}`,
   finanzasTipos: "/finanzas/tipos",
   finanzasTipoById: (id: string) => `/finanzas/tipos/${id}`,
-  monedas: "/monedas",
+  monedas: "/finanzas/monedas",
 
   // Auditorías
   auditorias: "/auditorias",

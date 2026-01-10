@@ -3,6 +3,7 @@
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { type ReactNode } from "react";
 
@@ -70,20 +71,18 @@ export function SelectFilter({
     className,
 }: SelectFilterProps) {
     return (
-        <select
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className={cn(
-                "h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring",
-                className
-            )}
-        >
-            <option value="">{placeholder}</option>
-            {options.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                </option>
-            ))}
-        </select>
+        <Select value={value || undefined} onValueChange={(val) => onChange(val || "")}>
+            <SelectTrigger className={cn("w-[180px]", className)}>
+                <SelectValue placeholder={placeholder} />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="">{placeholder}</SelectItem>
+                {options.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
     );
 }

@@ -131,7 +131,7 @@ export type UpdateMovimientoDTO = Partial<CreateMovimientoDTO>;
 export type Potrero = {
     id: string;
     nombre: string;
-    finca_id?: string | null;
+    id_finca?: string | null;
     finca_nombre?: string | null;
     area_hectareas?: number | null;
     capacidad_animales?: number | null;
@@ -144,7 +144,7 @@ export type Potrero = {
 
 export type CreatePotreroDTO = {
     nombre: string;
-    finca_id?: string;
+    id_finca?: string;
     area_hectareas?: number;
     capacidad_animales?: number;
     tipo_pasto?: string;
@@ -485,9 +485,11 @@ export type TipoTransaccion = {
 
 export type Moneda = {
     id: string;
-    codigo: string;
+    iso_alpha3: string;
     nombre: string;
-    simbolo: string;
+    simbolo: string | null;
+    decimales: number;
+    activo: boolean;
 };
 
 export type Adjunto = {

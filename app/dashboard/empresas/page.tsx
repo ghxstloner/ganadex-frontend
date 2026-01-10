@@ -138,43 +138,49 @@ export default function EmpresasPage() {
 
       <div
         className={cn(
-          "fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 px-4 transition-opacity",
+          "fixed inset-0 z-40 bg-slate-900/40 transition-opacity",
           isModalOpen ? "opacity-100" : "pointer-events-none opacity-0"
         )}
+        onClick={() => setIsModalOpen(false)}
       >
-        <Card className="w-full max-w-md border-slate-200/80 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg">
-              {editing ? "Editar empresa" : "Nueva empresa"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <Label htmlFor="nombre">Nombre</Label>
-                <Input
-                  id="nombre"
-                  value={nombre}
-                  onChange={(event) => setNombre(event.target.value)}
-                  placeholder="Nombre de la empresa"
-                />
-              </div>
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={saving}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Guardando..." : "Guardar"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+        <div className="fixed inset-y-0 left-0 right-0 lg:left-72 z-40 flex items-center justify-center px-4 pointer-events-none">
+          <Card 
+            className="w-full max-w-md border-slate-200/80 shadow-lg pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader>
+              <CardTitle className="text-lg">
+                {editing ? "Editar empresa" : "Nueva empresa"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4" onSubmit={handleSubmit}>
+                <div className="space-y-2">
+                  <Label htmlFor="nombre">Nombre</Label>
+                  <Input
+                    id="nombre"
+                    value={nombre}
+                    onChange={(event) => setNombre(event.target.value)}
+                    placeholder="Nombre de la empresa"
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setIsModalOpen(false)}
+                    disabled={saving}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? "Guardando..." : "Guardar"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

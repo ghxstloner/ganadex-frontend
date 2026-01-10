@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ArrowDownCircle, ArrowUpCircle, DollarSign, Loader2, Plus, Trash2 } from "lucide-react";
@@ -21,6 +21,7 @@ import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MetricCard } from "@/components/ui/metric-cards";
 import { MotionFadeSlide } from "@/components/ui/animate";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NoPermission from "@/components/no-permission";
 
 import {
@@ -216,10 +217,24 @@ function TransaccionesTab({ categorias }: { categorias: CategoriaFinanciera[] })
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Tipo *</label>
-              <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" {...form.register("tipo")}>
-                <option value="ingreso">Ingreso</option>
-                <option value="gasto">Gasto</option>
-              </select>
+              <Controller
+                name="tipo"
+                control={form.control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ingreso">Ingreso</SelectItem>
+                      <SelectItem value="gasto">Gasto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {form.formState.errors.tipo && (
+                <p className="text-sm text-red-500">{form.formState.errors.tipo.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Fecha *</label>
@@ -237,12 +252,23 @@ function TransaccionesTab({ categorias }: { categorias: CategoriaFinanciera[] })
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Categoría</label>
-              <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" {...form.register("categoria_id")}>
-                <option value="">Sin categoría</option>
-                {categorias.map((c) => (
-                  <option key={c.id} value={c.id}>{c.nombre}</option>
-                ))}
-              </select>
+              <Controller
+                name="categoria_id"
+                control={form.control}
+                render={({ field }) => (
+                  <Select value={field.value || ""} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sin categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sin categoría</SelectItem>
+                      {categorias.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
           </div>
           <div className="space-y-2">
@@ -375,10 +401,24 @@ function CategoriasTab() {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Tipo *</label>
-            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" {...form.register("tipo")}>
-              <option value="ingreso">Ingreso</option>
-              <option value="gasto">Gasto</option>
-            </select>
+            <Controller
+              name="tipo"
+              control={form.control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ingreso">Ingreso</SelectItem>
+                    <SelectItem value="gasto">Gasto</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {form.formState.errors.tipo && (
+              <p className="text-sm text-red-500">{form.formState.errors.tipo.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Descripción</label>

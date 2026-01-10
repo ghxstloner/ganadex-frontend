@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2, Plus, Trash2 } from "lucide-react";
@@ -20,6 +20,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MotionFadeSlide } from "@/components/ui/animate";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NoPermission from "@/components/no-permission";
 
 import {
@@ -241,22 +242,48 @@ function EventosTab({ animales }: { animales: Animal[] }) {
         <form className="space-y-4" onSubmit={form.handleSubmit(handleCreate)}>
           <div className="space-y-2">
             <label className="text-sm font-medium">Animal *</label>
-            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" {...form.register("animal_id")}>
-              <option value="">Seleccionar</option>
-              {animales.map((a) => (
-                <option key={a.id} value={a.id}>{a.nombre || a.codigo || a.id.slice(0, 8)}</option>
-              ))}
-            </select>
+            <Controller
+              name="animal_id"
+              control={form.control}
+              render={({ field }) => (
+                <Select value={field.value || ""} onValueChange={field.onChange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {animales.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.nombre || a.codigo || a.id.slice(0, 8)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {form.formState.errors.animal_id && (
+              <p className="text-sm text-red-500">{form.formState.errors.animal_id.message}</p>
+            )}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Tipo *</label>
-              <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" {...form.register("tipo")}>
-                <option value="">Seleccionar</option>
-                {tipoEventoOptions.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+              <Controller
+                name="tipo"
+                control={form.control}
+                render={({ field }) => (
+                  <Select value={field.value || ""} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tipoEventoOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {form.formState.errors.tipo && (
+                <p className="text-sm text-red-500">{form.formState.errors.tipo.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Fecha *</label>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
@@ -20,6 +20,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MotionFadeSlide } from "@/components/ui/animate";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import NoPermission from "@/components/no-permission";
 
 import {
@@ -27,6 +28,8 @@ import {
   createPotrero,
   updatePotrero,
   deletePotrero,
+  fetchEstadosPotreros,
+  type EstadoPotrero,
 } from "@/lib/api/potreros.service";
 import { fetchLotes, createLote, updateLote, deleteLote } from "@/lib/api/lotes.service";
 import {
@@ -42,11 +45,12 @@ import { hasPermission } from "@/lib/auth/permissions";
 // Schemas
 const potreroSchema = z.object({
   nombre: z.string().min(1, "Ingresa el nombre"),
-  finca_id: z.string().optional(),
+  id_finca: z.string().optional(),
   area_hectareas: z.any().optional(),
   capacidad_animales: z.any().optional(),
   tipo_pasto: z.string().optional(),
   estado: z.string().optional(),
+  notas: z.string().optional(),
 });
 
 const loteSchema = z.object({
@@ -67,13 +71,6 @@ const ocupacionSchema = z.object({
 type PotreroForm = z.infer<typeof potreroSchema>;
 type LoteForm = z.infer<typeof loteSchema>;
 type OcupacionForm = z.infer<typeof ocupacionSchema>;
-
-const estadoPotreroOptions = [
-  { value: "disponible", label: "Disponible" },
-  { value: "ocupado", label: "Ocupado" },
-  { value: "mantenimiento", label: "Mantenimiento" },
-  { value: "inactivo", label: "Inactivo" },
-];
 
 function getEstadoBadgeVariant(estado: string) {
   switch (estado) {
@@ -96,6 +93,7 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
   const canDelete = hasPermission(session, "potreros.delete");
 
   const [potreros, setPotreros] = useState<Potrero[]>([]);
+  const [estadosPotreros, setEstadosPotreros] = useState<EstadoPotrero[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
@@ -109,8 +107,20 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
 
   const form = useForm<PotreroForm>({
     resolver: zodResolver(potreroSchema),
-    defaultValues: { nombre: "", estado: "disponible" },
+    defaultValues: { nombre: "", estado: "" },
   });
+
+  useEffect(() => {
+    const loadEstados = async () => {
+      try {
+        const estados = await fetchEstadosPotreros();
+        setEstadosPotreros(estados);
+      } catch (err) {
+        console.error("Error cargando estados de potreros:", err);
+      }
+    };
+    loadEstados();
+  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -131,7 +141,15 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
   }, [loadData]);
 
   const openCreate = () => {
-    form.reset({ nombre: "", estado: "disponible" });
+    form.reset({ 
+      nombre: "", 
+      estado: estadosPotreros.length > 0 ? estadosPotreros[0].codigo : "",
+      id_finca: "",
+      area_hectareas: undefined,
+      capacidad_animales: undefined,
+      tipo_pasto: "",
+      notas: "",
+    });
     setCreateOpen(true);
   };
 
@@ -139,11 +157,12 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
     setSelected(p);
     form.reset({
       nombre: p.nombre,
-      finca_id: p.finca_id ?? "",
+      id_finca: p.id_finca ?? "",
       area_hectareas: p.area_hectareas ?? undefined,
       capacidad_animales: p.capacidad_animales ?? undefined,
       tipo_pasto: p.tipo_pasto ?? "",
       estado: p.estado,
+      notas: p.notas ?? "",
     });
     setEditOpen(true);
   };
@@ -259,20 +278,42 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Finca</label>
-              <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" {...form.register("finca_id")}>
-                <option value="">Seleccionar</option>
-                {fincas.map((f) => (
-                  <option key={f.id} value={f.id}>{f.nombre}</option>
-                ))}
-              </select>
+              <Controller
+                name="id_finca"
+                control={form.control}
+                render={({ field }) => (
+                  <Select value={field.value || "__none__"} onValueChange={(value) => field.onChange(value === "__none__" ? undefined : value)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Ninguna</SelectItem>
+                      {fincas.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Estado</label>
-              <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" {...form.register("estado")}>
-                {estadoPotreroOptions.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+              <Controller
+                name="estado"
+                control={form.control}
+                render={({ field }) => (
+                  <Select value={field.value || ""} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {estadosPotreros.map((estado) => (
+                        <SelectItem key={estado.codigo} value={estado.codigo}>{estado.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -285,6 +326,14 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
               <Input type="number" {...form.register("capacidad_animales")} />
             </div>
           </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Notas</label>
+            <textarea
+              {...form.register("notas")}
+              className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Notas adicionales..."
+            />
+          </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setCreateOpen(false)}>Cancelar</Button>
             <Button type="submit" disabled={submitting}>{submitting && <Loader2 className="h-4 w-4 animate-spin" />}Guardar</Button>
@@ -295,8 +344,67 @@ function PotrerosTab({ fincas }: { fincas: Finca[] }) {
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar potrero">
         <form className="space-y-4" onSubmit={form.handleSubmit(handleEdit)}>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Nombre</label>
+            <label className="text-sm font-medium">Nombre *</label>
             <Input {...form.register("nombre")} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Finca</label>
+              <Controller
+                name="id_finca"
+                control={form.control}
+                render={({ field }) => (
+                  <Select value={field.value || "__none__"} onValueChange={(value) => field.onChange(value === "__none__" ? undefined : value)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Ninguna</SelectItem>
+                      {fincas.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Estado</label>
+              <Controller
+                name="estado"
+                control={form.control}
+                render={({ field }) => (
+                  <Select value={field.value || ""} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {estadosPotreros.map((estado) => (
+                        <SelectItem key={estado.codigo} value={estado.codigo}>{estado.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Área (ha)</label>
+              <Input type="number" step="0.01" {...form.register("area_hectareas")} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Capacidad animales</label>
+              <Input type="number" {...form.register("capacidad_animales")} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Notas</label>
+            <textarea
+              {...form.register("notas")}
+              className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Notas adicionales..."
+            />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setEditOpen(false)}>Cancelar</Button>
@@ -424,12 +532,23 @@ function LotesTab({ fincas }: { fincas: Finca[] }) {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Finca</label>
-            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" {...form.register("finca_id")}>
-              <option value="">Seleccionar</option>
-              {fincas.map((f) => (
-                <option key={f.id} value={f.id}>{f.nombre}</option>
-              ))}
-            </select>
+            <Controller
+              name="finca_id"
+              control={form.control}
+              render={({ field }) => (
+                <Select value={field.value || "__none__"} onValueChange={(value) => field.onChange(value === "__none__" ? undefined : value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Ninguna</SelectItem>
+                    {fincas.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>{f.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Propósito</label>
@@ -566,21 +685,45 @@ function OcupacionesTab({ potreros, lotes }: { potreros: Potrero[]; lotes: Lote[
         <form className="space-y-4" onSubmit={form.handleSubmit(handleCreate)}>
           <div className="space-y-2">
             <label className="text-sm font-medium">Potrero *</label>
-            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" {...form.register("potrero_id")}>
-              <option value="">Seleccionar</option>
-              {potreros.map((p) => (
-                <option key={p.id} value={p.id}>{p.nombre}</option>
-              ))}
-            </select>
+            <Controller
+              name="potrero_id"
+              control={form.control}
+              render={({ field }) => (
+                <Select value={field.value || ""} onValueChange={field.onChange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {potreros.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {form.formState.errors.potrero_id && (
+              <p className="text-sm text-red-500">{form.formState.errors.potrero_id.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Lote</label>
-            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" {...form.register("lote_id")}>
-              <option value="">Ninguno</option>
-              {lotes.map((l) => (
-                <option key={l.id} value={l.id}>{l.nombre}</option>
-              ))}
-            </select>
+            <Controller
+              name="lote_id"
+              control={form.control}
+              render={({ field }) => (
+                <Select value={field.value || "__none__"} onValueChange={(value) => field.onChange(value === "__none__" ? undefined : value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Ninguno" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Ninguno</SelectItem>
+                    {lotes.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>{l.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
