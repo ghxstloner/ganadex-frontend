@@ -27,6 +27,11 @@ export const endpoints = {
   animalesBuscar: "/animales/buscar",
   animalesRazas: "/animales/razas",
   animalesColores: "/animales/colores-pelaje",
+  animalesTiposIdentificacion: "/animales/tipos-identificacion",
+  animalesCategorias: "/animales/categorias-animales",
+  animalesEstados: "/animales/estados-animales",
+  animalCategoriaHistorial: (id: string) => `/animales/${id}/categoria-historial`,
+  animalEstadoHistorial: (id: string) => `/animales/${id}/estado-historial`,
 
   // Movimientos
   movimientos: "/movimientos",

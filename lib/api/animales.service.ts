@@ -8,7 +8,10 @@ import type {
     UpdateAnimalDTO,
     Raza,
     ColorPelaje,
+    TipoIdentificacion,
     AnimalBusqueda,
+    HistorialCategoria,
+    HistorialEstado,
 } from "@/lib/types/business";
 
 export type AnimalesQuery = {
@@ -85,9 +88,20 @@ export async function fetchAnimalIdentificaciones(
     return apiRequest<Identificacion[]>(endpoints.animalIdentificaciones(animalId));
 }
 
+export type CreateIdentificacionDTO = {
+    id_tipo_identificacion: string;
+    valor: string;
+    fecha_asignacion: string;
+    activo?: boolean;
+    es_principal?: boolean;
+    observaciones?: string | null;
+};
+
+export type UpdateIdentificacionDTO = Partial<CreateIdentificacionDTO>;
+
 export async function createIdentificacion(
     animalId: string,
-    data: Omit<Identificacion, "id" | "animal_id">
+    data: CreateIdentificacionDTO
 ): Promise<Identificacion> {
     return apiRequest<Identificacion>(endpoints.animalIdentificaciones(animalId), {
         method: "POST",
@@ -97,7 +111,7 @@ export async function createIdentificacion(
 
 export async function updateIdentificacion(
     id: string,
-    data: Partial<Omit<Identificacion, "id" | "animal_id">>
+    data: UpdateIdentificacionDTO
 ): Promise<Identificacion> {
     return apiRequest<Identificacion>(endpoints.identificacionById(id), {
         method: "PATCH",
@@ -111,6 +125,12 @@ export async function deleteIdentificacion(id: string): Promise<void> {
     });
 }
 
+export async function setIdentificacionPrincipal(id: string): Promise<Identificacion> {
+    return apiRequest<Identificacion>(`${endpoints.identificacionById(id)}/principal`, {
+        method: "PATCH",
+    });
+}
+
 // Catálogos
 export async function fetchRazas(): Promise<Raza[]> {
     return apiRequest<Raza[]>(`${endpoints.animales}/razas`);
@@ -118,6 +138,74 @@ export async function fetchRazas(): Promise<Raza[]> {
 
 export async function fetchColoresPelaje(): Promise<ColorPelaje[]> {
     return apiRequest<ColorPelaje[]>(`${endpoints.animales}/colores-pelaje`);
+}
+
+export async function fetchTiposIdentificacion(): Promise<TipoIdentificacion[]> {
+    return apiRequest<TipoIdentificacion[]>(endpoints.animalesTiposIdentificacion);
+}
+
+export type CategoriaAnimal = {
+    id: string;
+    codigo: string;
+    nombre: string;
+    sexo_requerido?: string | null;
+    es_global?: boolean;
+};
+
+export type EstadoAnimal = {
+    id: string;
+    codigo: string;
+    nombre: string;
+    es_global?: boolean;
+};
+
+export async function fetchCategoriasAnimales(sexo?: "M" | "F"): Promise<CategoriaAnimal[]> {
+    const params = sexo ? `?sexo=${sexo}` : "";
+    return apiRequest<CategoriaAnimal[]>(`${endpoints.animalesCategorias}${params}`);
+}
+
+export async function fetchEstadosAnimales(): Promise<EstadoAnimal[]> {
+    return apiRequest<EstadoAnimal[]>(endpoints.animalesEstados);
+}
+
+export type CreateCategoriaHistorialDTO = {
+    id_categoria_animal: string;
+    fecha_inicio: string;
+    observaciones?: string;
+};
+
+export type CreateEstadoHistorialDTO = {
+    id_estado_animal: string;
+    fecha_inicio: string;
+    motivo?: string;
+};
+
+export async function fetchCategoriaHistorial(animalId: string): Promise<HistorialCategoria[]> {
+    return apiRequest<HistorialCategoria[]>(endpoints.animalCategoriaHistorial(animalId));
+}
+
+export async function fetchEstadoHistorial(animalId: string): Promise<HistorialEstado[]> {
+    return apiRequest<HistorialEstado[]>(endpoints.animalEstadoHistorial(animalId));
+}
+
+export async function createCategoriaHistorial(
+    animalId: string,
+    data: CreateCategoriaHistorialDTO
+): Promise<HistorialCategoria> {
+    return apiRequest<HistorialCategoria>(endpoints.animalCategoriaHistorial(animalId), {
+        method: "POST",
+        body: data,
+    });
+}
+
+export async function createEstadoHistorial(
+    animalId: string,
+    data: CreateEstadoHistorialDTO
+): Promise<HistorialEstado> {
+    return apiRequest<HistorialEstado>(endpoints.animalEstadoHistorial(animalId), {
+        method: "POST",
+        body: data,
+    });
 }
 
 export async function buscarAnimales(

@@ -634,6 +634,13 @@ export type ColorPelaje = {
     nombre: string;
 };
 
+export type TipoIdentificacion = {
+    id: string;
+    codigo: string;
+    nombre: string;
+    es_global?: boolean;
+};
+
 export type AnimalBusqueda = {
     id: string;
     nombre: string;

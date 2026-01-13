@@ -31,7 +31,6 @@ import { MotionFadeSlide } from "@/components/ui/animate";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Autocomplete, type AutocompleteOption } from "@/components/ui/autocomplete";
 import { ImageUpload } from "@/components/ui/image-upload";
 import NoPermission from "@/components/no-permission";
 
@@ -132,7 +131,6 @@ export default function AnimalesPage() {
 
   // Modal states
   const [createOpen, setCreateOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -147,16 +145,9 @@ export default function AnimalesPage() {
   const [razaForm, setRazaForm] = useState({ codigo: "", nombre: "" });
   const [colorForm, setColorForm] = useState({ codigo: "", nombre: "" });
 
-  // Animal search for padre/madre
-  const [padreSearchResults, setPadreSearchResults] = useState<AutocompleteOption[]>([]);
-  const [madreSearchResults, setMadreSearchResults] = useState<AutocompleteOption[]>([]);
-  const [searchingPadre, setSearchingPadre] = useState(false);
-  const [searchingMadre, setSearchingMadre] = useState(false);
-
-  // Photo upload
+  // Photo upload (solo para creación simple)
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [hadPhotoInitially, setHadPhotoInitially] = useState(false);
 
   const form = useForm<AnimalForm>({
     resolver: zodResolver(animalSchema),
@@ -240,51 +231,6 @@ export default function AnimalesPage() {
     }
   }, []);
 
-  const handleSearchPadre = useCallback(async (query: string) => {
-    if (!query || query.length < 2) {
-      setPadreSearchResults([]);
-      return;
-    }
-    setSearchingPadre(true);
-    try {
-      const excludeId = editOpen && selectedAnimal ? selectedAnimal.id : undefined;
-      const results = await buscarAnimales(query, "M", excludeId);
-      setPadreSearchResults(
-        results.map((a) => ({
-          value: a.id,
-          label: a.nombre || a.identificacion || `Animal ${a.id.slice(0, 8)}`,
-          description: a.identificacion || undefined,
-        }))
-      );
-    } catch {
-      setPadreSearchResults([]);
-    } finally {
-      setSearchingPadre(false);
-    }
-  }, [editOpen, selectedAnimal]);
-
-  const handleSearchMadre = useCallback(async (query: string) => {
-    if (!query || query.length < 2) {
-      setMadreSearchResults([]);
-      return;
-    }
-    setSearchingMadre(true);
-    try {
-      const excludeId = editOpen && selectedAnimal ? selectedAnimal.id : undefined;
-      const results = await buscarAnimales(query, "F", excludeId);
-      setMadreSearchResults(
-        results.map((a) => ({
-          value: a.id,
-          label: a.nombre || a.identificacion || `Animal ${a.id.slice(0, 8)}`,
-          description: a.identificacion || undefined,
-        }))
-      );
-    } catch {
-      setMadreSearchResults([]);
-    } finally {
-      setSearchingMadre(false);
-    }
-  }, [editOpen, selectedAnimal]);
 
   useEffect(() => {
     loadAnimals();
@@ -324,74 +270,14 @@ export default function AnimalesPage() {
       madre_id: "",
       notas: "",
     });
-    setPadreSearchResults([]);
-    setMadreSearchResults([]);
     setPhotoFile(null);
     setPhotoPreview(null);
-    setHadPhotoInitially(false);
-    setEditOpen(false);
     setCreateOpen(true);
   };
 
   const openEdit = (animal: Animal) => {
-    setSelectedAnimal(animal);
-    const sexoValue = animal.sexo === "hembra" || animal.sexo === "F" ? "F" : "M";
-    form.reset({
-      nombre: animal.nombre ?? "",
-      sexo: sexoValue,
-      fecha_nacimiento: animal.fecha_nacimiento ?? "",
-      fecha_nacimiento_estimada: animal.fecha_nacimiento_estimada ?? false,
-      id_raza: animal.id_raza ?? "",
-      id_color_pelaje: animal.id_color_pelaje ?? "",
-      id_finca: animal.id_finca ?? animal.finca_id ?? "",
-      padre_id: animal.padre_id ?? "",
-      madre_id: animal.madre_id ?? "",
-      notas: animal.notas ?? "",
-    });
-    
-    // Load padre name if ID exists
-    if (animal.padre_id) {
-      if (animal.padre_nombre) {
-        setPadreSearchResults([
-          {
-            value: animal.padre_id,
-            label: animal.padre_nombre,
-          },
-        ]);
-      } else {
-        // Si no hay nombre, dejar vacío (el usuario puede buscar manualmente)
-        // El backend ahora debería devolver los nombres, pero por si acaso
-        setPadreSearchResults([]);
-      }
-    } else {
-      setPadreSearchResults([]);
-    }
-    
-    // Load madre name if ID exists
-    if (animal.madre_id) {
-      if (animal.madre_nombre) {
-        setMadreSearchResults([
-          {
-            value: animal.madre_id,
-            label: animal.madre_nombre,
-          },
-        ]);
-      } else {
-        // Si no hay nombre, dejar vacío (el usuario puede buscar manualmente)
-        // El backend ahora debería devolver los nombres, pero por si acaso
-        setMadreSearchResults([]);
-      }
-    } else {
-      setMadreSearchResults([]);
-    }
-    
-    // Load photo preview if exists
-    setPhotoFile(null);
-    const photoUrl = buildImageUrl(animal.foto_url);
-    setPhotoPreview(photoUrl);
-    setHadPhotoInitially(!!animal.foto_url);
-    setCreateOpen(false);
-    setEditOpen(true);
+    // Navegar a la hoja de vida en modo edición
+    router.push(`/dashboard/animales/${animal.id}?mode=edit`);
   };
 
   const openDelete = (animal: Animal) => {
@@ -401,11 +287,8 @@ export default function AnimalesPage() {
 
   const closeForm = () => {
     setCreateOpen(false);
-    setEditOpen(false);
-    setSelectedAnimal(null);
     setPhotoFile(null);
     setPhotoPreview(null);
-    setHadPhotoInitially(false);
   };
 
   const handleCreate = async (values: AnimalForm) => {
@@ -427,9 +310,10 @@ export default function AnimalesPage() {
         }
       }
       
-      await loadAnimals();
       toast.success("Animal creado");
       setCreateOpen(false);
+      // Redirigir a la hoja de vida del animal creado
+      router.push(`/dashboard/animales/${created.id}`);
     } catch {
       // Error already toasted
     } finally {
@@ -437,56 +321,6 @@ export default function AnimalesPage() {
     }
   };
 
-  const handleEdit = async (values: AnimalForm) => {
-    if (!selectedAnimal) return;
-    setSubmitting(true);
-    try {
-      const updated = await updateAnimal(selectedAnimal.id, values);
-      
-      // Detectar si se eliminó la foto (había foto inicialmente pero ahora no hay ni file ni preview)
-      const photoWasRemoved = hadPhotoInitially && !photoFile && !photoPreview;
-      
-      console.log("Photo state:", {
-        hadPhotoInitially,
-        photoFile: !!photoFile,
-        photoPreview: !!photoPreview,
-        photoWasRemoved,
-      });
-      
-      // Eliminar foto si fue removida
-      if (photoWasRemoved) {
-        try {
-          console.log("Eliminando foto del animal:", selectedAnimal.id);
-          await deleteAnimalPhoto(selectedAnimal.id);
-          console.log("Foto eliminada exitosamente");
-        } catch (photoError) {
-          console.error("Error eliminando foto:", photoError);
-          toast.error("Animal actualizado, pero hubo un error al eliminar la foto");
-        }
-      }
-      
-      // Upload photo if a new one was selected
-      if (photoFile) {
-        try {
-          console.log("Subiendo nueva foto para el animal:", selectedAnimal.id);
-          await uploadAnimalPhoto(selectedAnimal.id, photoFile);
-          console.log("Foto subida exitosamente");
-        } catch (photoError) {
-          // Log but don't fail the update
-          console.error("Error uploading photo:", photoError);
-          toast.error("Animal actualizado, pero hubo un error al subir la foto");
-        }
-      }
-      
-      await loadAnimals();
-      toast.success("Animal actualizado");
-      setEditOpen(false);
-    } catch {
-      // Error already toasted
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleDelete = async () => {
     if (!selectedAnimal) return;
@@ -609,7 +443,7 @@ export default function AnimalesPage() {
       key: "estado",
       header: "Estado",
       render: (animal) => (
-        <Badge variant={getEstadoBadgeVariant(animal.estado)}>
+        <Badge variant={getEstadoBadgeVariant(animal.estado ?? "")}>
           {animal.estado}
         </Badge>
       ),
@@ -688,298 +522,208 @@ export default function AnimalesPage() {
 
         <Card className="border-border bg-card">
           <CardContent className="space-y-4 p-5">
-            {(createOpen || editOpen) && (
-              <Card className="border-primary/20">
-                <CardHeader className="border-b border-border">
-                  <div className="space-y-1">
-                    <CardTitle>
-                      {editOpen ? "Editar animal" : "Nuevo animal"}
-                    </CardTitle>
-                    <CardDescription>
-                      {editOpen
-                        ? "Actualiza los datos del animal."
-                        : "Ingresa los datos del animal."}
-                    </CardDescription>
-                  </div>
-                  <CardAction>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={closeForm}
-                      aria-label="Cerrar formulario"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </CardAction>
-                </CardHeader>
+            {createOpen && (
+              <Modal
+                open={createOpen}
+                onClose={closeForm}
+                title="Nuevo animal"
+                description="Ingresa los datos básicos del animal. Podrás agregar más información después."
+              >
                 <form
-                  className="space-y-6"
-                  onSubmit={form.handleSubmit(
-                    editOpen ? handleEdit : handleCreate
-                  )}
+                  onSubmit={form.handleSubmit(handleCreate)}
+                  className="space-y-4"
                 >
-                  <CardContent className="space-y-6">
-                    <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-                      <div className="space-y-6">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="id_finca">Finca *</Label>
-                            <select
-                              id="id_finca"
-                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                              {...form.register("id_finca")}
-                            >
-                              <option value="">Seleccionar</option>
-                              {fincas.map((f) => (
-                                <option key={f.id} value={f.id}>
-                                  {f.nombre}
-                                </option>
-                              ))}
-                            </select>
-                            {form.formState.errors.id_finca && (
-                              <p className="text-xs text-destructive">
-                                {form.formState.errors.id_finca.message}
-                              </p>
-                            )}
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="nombre">Nombre</Label>
-                            <Input
-                              id="nombre"
-                              {...form.register("nombre")}
-                              placeholder="Opcional"
-                            />
-                          </div>
-                        </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="id_finca">Finca *</Label>
+                      <select
+                        id="id_finca"
+                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                        {...form.register("id_finca")}
+                      >
+                        <option value="">Seleccionar</option>
+                        {fincas.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.nombre}
+                          </option>
+                        ))}
+                      </select>
+                      {form.formState.errors.id_finca && (
+                        <p className="text-xs text-destructive">
+                          {form.formState.errors.id_finca.message}
+                        </p>
+                      )}
+                    </div>
 
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="sexo">Sexo *</Label>
-                            <select
-                              id="sexo"
-                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                              {...form.register("sexo")}
-                            >
-                              <option value="M">Macho</option>
-                              <option value="F">Hembra</option>
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="fecha_nacimiento">
-                              Fecha de nacimiento
-                            </Label>
-                            <Controller
-                              name="fecha_nacimiento"
-                              control={form.control}
-                              render={({ field }) => (
-                                <DatePicker
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  placeholder="Seleccionar fecha"
-                                />
-                              )}
-                            />
-                          </div>
-                        </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="nombre">Nombre</Label>
+                      <Input
+                        id="nombre"
+                        {...form.register("nombre")}
+                        placeholder="Opcional"
+                      />
+                    </div>
 
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="fecha_nacimiento_estimada"
-                              checked={form.watch("fecha_nacimiento_estimada")}
-                              onCheckedChange={(checked) =>
-                                form.setValue(
-                                  "fecha_nacimiento_estimada",
-                                  !!checked
-                                )
-                              }
-                            />
-                            <Label
-                              htmlFor="fecha_nacimiento_estimada"
-                              className="text-sm font-normal cursor-pointer"
-                            >
-                              Fecha de nacimiento estimada
-                            </Label>
-                          </div>
-                        </div>
-
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor="id_raza">Raza</Label>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 px-2 text-xs"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setCreateRazaOpen(true);
-                                }}
-                              >
-                                <Plus className="h-3 w-3 mr-1" />
-                                Nueva
-                              </Button>
-                            </div>
-                            <select
-                              id="id_raza"
-                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                              {...form.register("id_raza")}
-                            >
-                              <option value="">Seleccionar</option>
-                              {razas.map((r) => (
-                                <option key={r.id} value={r.id}>
-                                  {r.nombre}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor="id_color_pelaje">
-                                Color de pelaje
-                              </Label>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 px-2 text-xs"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setCreateColorOpen(true);
-                                }}
-                              >
-                                <Plus className="h-3 w-3 mr-1" />
-                                Nuevo
-                              </Button>
-                            </div>
-                            <select
-                              id="id_color_pelaje"
-                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                              {...form.register("id_color_pelaje")}
-                            >
-                              <option value="">Seleccionar</option>
-                              {colores.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                  {c.nombre}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="padre_id">Padre</Label>
-                            <Controller
-                              name="padre_id"
-                              control={form.control}
-                              render={({ field }) => (
-                                <Autocomplete
-                                  value={field.value}
-                                  onChange={(value) => {
-                                    field.onChange(value);
-                                    if (!value) {
-                                      setPadreSearchResults([]);
-                                    }
-                                  }}
-                                  options={padreSearchResults}
-                                  placeholder="Buscar padre (macho)..."
-                                  searchPlaceholder="Buscar por nombre o identificación..."
-                                  emptyText={
-                                    form.watch("padre_id") || padreSearchResults.length > 0
-                                      ? "No se encontraron animales machos"
-                                      : "Escribe al menos 2 caracteres para buscar"
-                                  }
-                                  onSearch={handleSearchPadre}
-                                  loading={searchingPadre}
-                                />
-                              )}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="madre_id">Madre</Label>
-                            <Controller
-                              name="madre_id"
-                              control={form.control}
-                              render={({ field }) => (
-                                <Autocomplete
-                                  value={field.value}
-                                  onChange={(value) => {
-                                    field.onChange(value);
-                                    if (!value) {
-                                      setMadreSearchResults([]);
-                                    }
-                                  }}
-                                  options={madreSearchResults}
-                                  placeholder="Buscar madre (hembra)..."
-                                  searchPlaceholder="Buscar por nombre o identificación..."
-                                  emptyText={
-                                    form.watch("madre_id") || madreSearchResults.length > 0
-                                      ? "No se encontraron animales hembras"
-                                      : "Escribe al menos 2 caracteres para buscar"
-                                  }
-                                  onSearch={handleSearchMadre}
-                                  loading={searchingMadre}
-                                />
-                              )}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="notas">Notas</Label>
-                          <textarea
-                            id="notas"
-                            className="w-full min-h-[100px] rounded-md border border-border bg-background px-3 py-2 text-sm"
-                            {...form.register("notas")}
-                            placeholder="Opcional"
-                          />
-                        </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="sexo">Sexo *</Label>
+                        <select
+                          id="sexo"
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                          {...form.register("sexo")}
+                        >
+                          <option value="M">Macho</option>
+                          <option value="F">Hembra</option>
+                        </select>
                       </div>
-
-                      <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            Foto del animal
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Sube una imagen clara para identificarlo.
-                          </p>
-                        </div>
-                        <ImageUpload
-                          value={photoFile || photoPreview}
-                          onChange={(file) => {
-                            setPhotoFile(file);
-                            if (!file) {
-                              setPhotoPreview(null);
-                            }
-                          }}
-                          onRemove={() => {
-                            setPhotoFile(null);
-                            setPhotoPreview(null);
-                          }}
-                          disabled={submitting}
+                      <div className="space-y-2">
+                        <Label htmlFor="fecha_nacimiento">
+                          Fecha de nacimiento
+                        </Label>
+                        <Controller
+                          name="fecha_nacimiento"
+                          control={form.control}
+                          render={({ field }) => (
+                            <DatePicker
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Seleccionar fecha"
+                            />
+                          )}
                         />
                       </div>
                     </div>
-                  </CardContent>
-                  <CardFooter className="justify-end gap-2 border-t border-border">
+
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="fecha_nacimiento_estimada"
+                          checked={form.watch("fecha_nacimiento_estimada")}
+                          onCheckedChange={(checked) =>
+                            form.setValue(
+                              "fecha_nacimiento_estimada",
+                              !!checked
+                            )
+                          }
+                        />
+                        <Label
+                          htmlFor="fecha_nacimiento_estimada"
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          Fecha de nacimiento estimada
+                        </Label>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="id_raza">Raza</Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setCreateRazaOpen(true);
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Nueva
+                          </Button>
+                        </div>
+                        <select
+                          id="id_raza"
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                          {...form.register("id_raza")}
+                        >
+                          <option value="">Seleccionar</option>
+                          {razas.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="id_color_pelaje">
+                            Color de pelaje
+                          </Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setCreateColorOpen(true);
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Nuevo
+                          </Button>
+                        </div>
+                        <select
+                          id="id_color_pelaje"
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                          {...form.register("id_color_pelaje")}
+                        >
+                          <option value="">Seleccionar</option>
+                          {colores.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="notas">Notas</Label>
+                      <textarea
+                        id="notas"
+                        className="w-full min-h-[80px] rounded-md border border-border bg-background px-3 py-2 text-sm"
+                        {...form.register("notas")}
+                        placeholder="Opcional"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Foto del animal (opcional)</Label>
+                      <ImageUpload
+                        value={photoFile || photoPreview}
+                        onChange={(file) => {
+                          setPhotoFile(file);
+                          if (!file) {
+                            setPhotoPreview(null);
+                          }
+                        }}
+                        onRemove={() => {
+                          setPhotoFile(null);
+                          setPhotoPreview(null);
+                        }}
+                        disabled={submitting}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-4">
                     <Button type="button" variant="ghost" onClick={closeForm}>
                       Cancelar
                     </Button>
                     <Button type="submit" disabled={submitting}>
                       {submitting && (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       )}
-                      {editOpen ? "Guardar cambios" : "Guardar"}
+                      Crear animal
                     </Button>
-                  </CardFooter>
+                  </div>
                 </form>
-              </Card>
+              </Modal>
             )}
-            {!createOpen && !editOpen && (
+            {!createOpen && (
               <>
                 <FiltersBar
                   search={search}
