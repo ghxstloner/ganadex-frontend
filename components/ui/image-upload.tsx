@@ -16,8 +16,8 @@ export interface ImageUploadProps {
   previewClassName?: string;
 }
 
-const DEFAULT_MAX_SIZE = 5 * 1024 * 1024; // 5MB
-const DEFAULT_ACCEPTED_FORMATS = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const DEFAULT_MAX_SIZE = 10 * 1024 * 1024; // 10MB
+const DEFAULT_ACCEPTED_FORMATS = ["image/*"]; // Acepta cualquier tipo de imagen
 
 export function ImageUpload({
   value,
@@ -56,9 +56,18 @@ export function ImageUpload({
   }, [value]);
 
   const validateFile = (file: File): string | null => {
-    if (!acceptedFormats.includes(file.type)) {
-      return `Formato no válido. Formatos aceptados: ${acceptedFormats.map((f) => f.split("/")[1]).join(", ")}`;
+    // Validar que sea una imagen
+    if (!file.type.startsWith("image/")) {
+      return "El archivo debe ser una imagen";
     }
+    
+    // Si hay formatos específicos definidos (no es "image/*"), validarlos
+    if (acceptedFormats.length > 0 && !acceptedFormats.includes("image/*")) {
+      if (!acceptedFormats.includes(file.type)) {
+        return `Formato no válido. Formatos aceptados: ${acceptedFormats.map((f) => f.split("/")[1]).join(", ")}`;
+      }
+    }
+    
     if (file.size > maxSize) {
       const maxSizeMB = (maxSize / (1024 * 1024)).toFixed(1);
       return `El archivo es demasiado grande. Tamaño máximo: ${maxSizeMB}MB`;
@@ -154,7 +163,7 @@ export function ImageUpload({
         <input
           ref={inputRef}
           type="file"
-          accept={acceptedFormats.join(",")}
+          accept={acceptedFormats.includes("image/*") ? "image/*" : acceptedFormats.join(",")}
           onChange={handleFileInput}
           className="hidden"
           disabled={disabled}
@@ -192,7 +201,9 @@ export function ImageUpload({
               {isDragging ? "Suelta la imagen aquí" : "Arrastra una imagen o haz clic para seleccionar"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {acceptedFormats.map((f) => f.split("/")[1]).join(", ").toUpperCase()} hasta {(maxSize / (1024 * 1024)).toFixed(0)}MB
+              {acceptedFormats.includes("image/*") 
+                ? "Cualquier formato de imagen" 
+                : acceptedFormats.map((f) => f.split("/")[1]).join(", ").toUpperCase()} hasta {(maxSize / (1024 * 1024)).toFixed(0)}MB
             </p>
           </div>
         )}

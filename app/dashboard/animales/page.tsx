@@ -46,10 +46,12 @@ import {
   createRaza,
   createColor,
   uploadAnimalPhoto,
+  deleteAnimalPhoto,
   type AnimalesQuery,
   type CreateRazaDTO,
   type CreateColorDTO,
 } from "@/lib/api/animales.service";
+import { buildImageUrl } from "@/lib/api/client";
 import { fetchFincas } from "@/lib/api/fincas.service";
 import type {
   Animal,
@@ -154,6 +156,7 @@ export default function AnimalesPage() {
   // Photo upload
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [hadPhotoInitially, setHadPhotoInitially] = useState(false);
 
   const form = useForm<AnimalForm>({
     resolver: zodResolver(animalSchema),
@@ -244,7 +247,8 @@ export default function AnimalesPage() {
     }
     setSearchingPadre(true);
     try {
-      const results = await buscarAnimales(query, "M");
+      const excludeId = editOpen && selectedAnimal ? selectedAnimal.id : undefined;
+      const results = await buscarAnimales(query, "M", excludeId);
       setPadreSearchResults(
         results.map((a) => ({
           value: a.id,
@@ -257,7 +261,7 @@ export default function AnimalesPage() {
     } finally {
       setSearchingPadre(false);
     }
-  }, []);
+  }, [editOpen, selectedAnimal]);
 
   const handleSearchMadre = useCallback(async (query: string) => {
     if (!query || query.length < 2) {
@@ -266,7 +270,8 @@ export default function AnimalesPage() {
     }
     setSearchingMadre(true);
     try {
-      const results = await buscarAnimales(query, "F");
+      const excludeId = editOpen && selectedAnimal ? selectedAnimal.id : undefined;
+      const results = await buscarAnimales(query, "F", excludeId);
       setMadreSearchResults(
         results.map((a) => ({
           value: a.id,
@@ -279,7 +284,7 @@ export default function AnimalesPage() {
     } finally {
       setSearchingMadre(false);
     }
-  }, []);
+  }, [editOpen, selectedAnimal]);
 
   useEffect(() => {
     loadAnimals();
@@ -323,6 +328,7 @@ export default function AnimalesPage() {
     setMadreSearchResults([]);
     setPhotoFile(null);
     setPhotoPreview(null);
+    setHadPhotoInitially(false);
     setEditOpen(false);
     setCreateOpen(true);
   };
@@ -342,30 +348,48 @@ export default function AnimalesPage() {
       madre_id: animal.madre_id ?? "",
       notas: animal.notas ?? "",
     });
-    // Load padre/madre names if they exist
-    if (animal.padre_id && animal.padre_nombre) {
-      setPadreSearchResults([
-        {
-          value: animal.padre_id,
-          label: animal.padre_nombre,
-        },
-      ]);
+    
+    // Load padre name if ID exists
+    if (animal.padre_id) {
+      if (animal.padre_nombre) {
+        setPadreSearchResults([
+          {
+            value: animal.padre_id,
+            label: animal.padre_nombre,
+          },
+        ]);
+      } else {
+        // Si no hay nombre, dejar vacío (el usuario puede buscar manualmente)
+        // El backend ahora debería devolver los nombres, pero por si acaso
+        setPadreSearchResults([]);
+      }
     } else {
       setPadreSearchResults([]);
     }
-    if (animal.madre_id && animal.madre_nombre) {
-      setMadreSearchResults([
-        {
-          value: animal.madre_id,
-          label: animal.madre_nombre,
-        },
-      ]);
+    
+    // Load madre name if ID exists
+    if (animal.madre_id) {
+      if (animal.madre_nombre) {
+        setMadreSearchResults([
+          {
+            value: animal.madre_id,
+            label: animal.madre_nombre,
+          },
+        ]);
+      } else {
+        // Si no hay nombre, dejar vacío (el usuario puede buscar manualmente)
+        // El backend ahora debería devolver los nombres, pero por si acaso
+        setMadreSearchResults([]);
+      }
     } else {
       setMadreSearchResults([]);
     }
+    
     // Load photo preview if exists
     setPhotoFile(null);
-    setPhotoPreview(animal.foto_url ?? null);
+    const photoUrl = buildImageUrl(animal.foto_url);
+    setPhotoPreview(photoUrl);
+    setHadPhotoInitially(!!animal.foto_url);
     setCreateOpen(false);
     setEditOpen(true);
   };
@@ -381,6 +405,7 @@ export default function AnimalesPage() {
     setSelectedAnimal(null);
     setPhotoFile(null);
     setPhotoPreview(null);
+    setHadPhotoInitially(false);
   };
 
   const handleCreate = async (values: AnimalForm) => {
@@ -390,6 +415,18 @@ export default function AnimalesPage() {
         ...values,
       };
       const created = await createAnimal(dto);
+      
+      // Upload photo if one was selected
+      if (photoFile) {
+        try {
+          await uploadAnimalPhoto(created.id, photoFile);
+        } catch (photoError) {
+          // Log but don't fail the creation
+          console.error("Error uploading photo:", photoError);
+          toast.error("Animal creado, pero hubo un error al subir la foto");
+        }
+      }
+      
       await loadAnimals();
       toast.success("Animal creado");
       setCreateOpen(false);
@@ -406,10 +443,34 @@ export default function AnimalesPage() {
     try {
       const updated = await updateAnimal(selectedAnimal.id, values);
       
+      // Detectar si se eliminó la foto (había foto inicialmente pero ahora no hay ni file ni preview)
+      const photoWasRemoved = hadPhotoInitially && !photoFile && !photoPreview;
+      
+      console.log("Photo state:", {
+        hadPhotoInitially,
+        photoFile: !!photoFile,
+        photoPreview: !!photoPreview,
+        photoWasRemoved,
+      });
+      
+      // Eliminar foto si fue removida
+      if (photoWasRemoved) {
+        try {
+          console.log("Eliminando foto del animal:", selectedAnimal.id);
+          await deleteAnimalPhoto(selectedAnimal.id);
+          console.log("Foto eliminada exitosamente");
+        } catch (photoError) {
+          console.error("Error eliminando foto:", photoError);
+          toast.error("Animal actualizado, pero hubo un error al eliminar la foto");
+        }
+      }
+      
       // Upload photo if a new one was selected
       if (photoFile) {
         try {
+          console.log("Subiendo nueva foto para el animal:", selectedAnimal.id);
           await uploadAnimalPhoto(selectedAnimal.id, photoFile);
+          console.log("Foto subida exitosamente");
         } catch (photoError) {
           // Log but don't fail the update
           console.error("Error uploading photo:", photoError);
@@ -826,7 +887,11 @@ export default function AnimalesPage() {
                                   options={padreSearchResults}
                                   placeholder="Buscar padre (macho)..."
                                   searchPlaceholder="Buscar por nombre o identificación..."
-                                  emptyText="No se encontraron animales machos"
+                                  emptyText={
+                                    form.watch("padre_id") || padreSearchResults.length > 0
+                                      ? "No se encontraron animales machos"
+                                      : "Escribe al menos 2 caracteres para buscar"
+                                  }
                                   onSearch={handleSearchPadre}
                                   loading={searchingPadre}
                                 />
@@ -850,7 +915,11 @@ export default function AnimalesPage() {
                                   options={madreSearchResults}
                                   placeholder="Buscar madre (hembra)..."
                                   searchPlaceholder="Buscar por nombre o identificación..."
-                                  emptyText="No se encontraron animales hembras"
+                                  emptyText={
+                                    form.watch("madre_id") || madreSearchResults.length > 0
+                                      ? "No se encontraron animales hembras"
+                                      : "Escribe al menos 2 caracteres para buscar"
+                                  }
                                   onSearch={handleSearchMadre}
                                   loading={searchingMadre}
                                 />
@@ -886,6 +955,10 @@ export default function AnimalesPage() {
                             if (!file) {
                               setPhotoPreview(null);
                             }
+                          }}
+                          onRemove={() => {
+                            setPhotoFile(null);
+                            setPhotoPreview(null);
                           }}
                           disabled={submitting}
                         />

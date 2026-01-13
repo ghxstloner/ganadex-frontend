@@ -122,11 +122,13 @@ export async function fetchColoresPelaje(): Promise<ColorPelaje[]> {
 
 export async function buscarAnimales(
     query: string,
-    sexo?: "M" | "F"
+    sexo?: "M" | "F",
+    excludeId?: string
 ): Promise<AnimalBusqueda[]> {
     const params = new URLSearchParams();
     if (query) params.append("q", query);
     if (sexo) params.append("sexo", sexo);
+    if (excludeId) params.append("exclude_id", excludeId);
     const qs = params.toString();
     return apiRequest<AnimalBusqueda[]>(
         `${endpoints.animales}/buscar${qs ? `?${qs}` : ""}`
@@ -161,12 +163,27 @@ export async function uploadAnimalPhoto(
     animalId: string,
     file: File
 ): Promise<{ foto_url: string }> {
+    // Validar que el archivo existe y es válido
+    if (!file || !(file instanceof File)) {
+        throw new Error("Archivo inválido");
+    }
+
     const formData = new FormData();
     formData.append("foto", file);
+
+    // Verificar que el archivo se agregó correctamente al FormData
+    if (!formData.has("foto")) {
+        throw new Error("Error al preparar el archivo para subir");
+    }
 
     return apiRequest<{ foto_url: string }>(endpoints.animalFoto(animalId), {
         method: "POST",
         body: formData,
-        headers: {}, // No set Content-Type, browser will set it with boundary
+    });
+}
+
+export async function deleteAnimalPhoto(animalId: string): Promise<void> {
+    return apiRequest<void>(endpoints.animalFoto(animalId), {
+        method: "DELETE",
     });
 }

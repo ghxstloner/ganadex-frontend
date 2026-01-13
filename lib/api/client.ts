@@ -40,6 +40,28 @@ export function buildApiUrl(path: string) {
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+/**
+ * Construye la URL completa para una imagen subida al backend.
+ * Normaliza las rutas con backslashes (Windows) a forward slashes.
+ * @param fotoUrl - Ruta relativa de la imagen (ej: "uploads\\2\\animales\\animal_1.webp")
+ * @returns URL completa para acceder a la imagen
+ */
+export function buildImageUrl(fotoUrl: string | null | undefined): string | null {
+  if (!fotoUrl) return null;
+  
+  // Normalizar backslashes a forward slashes
+  const normalizedPath = fotoUrl.replace(/\\/g, "/");
+  
+  // Asegurar que comience con /uploads/
+  const path = normalizedPath.startsWith("/") 
+    ? normalizedPath 
+    : normalizedPath.startsWith("uploads/")
+      ? `/${normalizedPath}`
+      : `/uploads/${normalizedPath}`;
+  
+  return buildApiUrl(path);
+}
+
 export async function postJSON<TResponse>(
   path: string,
   data: unknown

@@ -86,7 +86,7 @@ export function Autocomplete({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-        <Command>
+        <Command shouldFilter={false}>
           <CommandInput
             placeholder={searchPlaceholder}
             value={searchQuery}
@@ -104,7 +104,7 @@ export function Autocomplete({
                 {options.map((option) => (
                   <CommandItem
                     key={option.value}
-                    value={option.value}
+                    value={`${option.label} ${option.description || ""}`}
                     onSelect={() => {
                       onChange?.(option.value === value ? "" : option.value);
                       setOpen(false);

@@ -47,7 +47,8 @@ export async function apiRequest<TResponse>(
     ...(options.headers as Record<string, string> ?? {}),
   };
 
-  if (options.body !== undefined) {
+  // Don't set Content-Type for FormData, browser will set it with boundary
+  if (options.body !== undefined && !(options.body instanceof FormData)) {
     headers["Content-Type"] = "application/json";
   }
 
@@ -77,7 +78,9 @@ export async function apiRequest<TResponse>(
   const response = await fetch(url, {
     method,
     headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body: options.body !== undefined 
+      ? (options.body instanceof FormData ? options.body : JSON.stringify(options.body))
+      : undefined,
     signal: options.signal,
   });
 

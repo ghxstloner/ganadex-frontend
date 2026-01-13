@@ -34,7 +34,26 @@ export function DatePicker({
   name,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
-  const date = value ? new Date(value + "T00:00:00") : undefined
+  
+  // Validar y crear la fecha de forma segura
+  const date = React.useMemo(() => {
+    if (!value || value.trim() === "") return undefined
+    try {
+      // Si ya viene en formato ISO completo, usarlo directamente
+      // Si viene en formato yyyy-MM-dd, agregar la hora
+      let dateString = value
+      if (!value.includes("T") && !value.includes("Z")) {
+        // Es formato yyyy-MM-dd, agregar hora
+        dateString = value + "T00:00:00"
+      }
+      const dateValue = new Date(dateString)
+      // Verificar que la fecha sea válida
+      if (isNaN(dateValue.getTime())) return undefined
+      return dateValue
+    } catch {
+      return undefined
+    }
+  }, [value])
 
   const handleSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
@@ -62,7 +81,7 @@ export function DatePicker({
           type="button"
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP", { locale: es }) : <span>{placeholder}</span>}
+          {date && !isNaN(date.getTime()) ? format(date, "PPP", { locale: es }) : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
