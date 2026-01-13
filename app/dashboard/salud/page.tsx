@@ -21,6 +21,7 @@ import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MotionFadeSlide } from "@/components/ui/animate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import NoPermission from "@/components/no-permission";
 
 import {
@@ -275,7 +276,20 @@ function EventosTab({ animales }: { animales: Animal[] }) {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Fecha *</label>
-              <Input type="date" {...form.register("fecha")} />
+              <Controller
+                name="fecha"
+                control={form.control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Seleccionar fecha"
+                  />
+                )}
+              />
+              {form.formState.errors.fecha && (
+                <p className="text-sm text-red-500">{form.formState.errors.fecha.message}</p>
+              )}
             </div>
           </div>
           <div className="space-y-2">
@@ -465,11 +479,37 @@ function RetirosTab({ animales }: { animales: Animal[] }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Fecha inicio *</label>
-              <Input type="date" {...form.register("fecha_inicio")} />
+              <Controller
+                name="fecha_inicio"
+                control={form.control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Seleccionar fecha inicio"
+                  />
+                )}
+              />
+              {form.formState.errors.fecha_inicio && (
+                <p className="text-sm text-red-500">{form.formState.errors.fecha_inicio.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Fecha fin *</label>
-              <Input type="date" {...form.register("fecha_fin")} />
+              <Controller
+                name="fecha_fin"
+                control={form.control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Seleccionar fecha fin"
+                  />
+                )}
+              />
+              {form.formState.errors.fecha_fin && (
+                <p className="text-sm text-red-500">{form.formState.errors.fecha_fin.message}</p>
+              )}
             </div>
           </div>
           <div className="flex justify-end gap-2">

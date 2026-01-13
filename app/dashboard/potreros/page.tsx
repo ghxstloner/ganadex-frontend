@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import NoPermission from "@/components/no-permission";
 import { Tabs as PageTabs } from "@/components/ui/tabs"; // ✅ tu Tabs (por props tabs=[...]) SOLO lo usamos en la página principal
 
@@ -994,11 +995,41 @@ function OcupacionesTab({ potreros, lotes }: { potreros: Potrero[]; lotes: Lote[
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Fecha inicio *</label>
-              <Input type="date" {...form.register("fecha_inicio")} />
+              <Controller
+                name="fecha_inicio"
+                control={form.control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Seleccionar fecha inicio"
+                  />
+                )}
+              />
+              {form.formState.errors.fecha_inicio && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.fecha_inicio.message}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Fecha fin</label>
-              <Input type="date" {...form.register("fecha_fin")} />
+              <Controller
+                name="fecha_fin"
+                control={form.control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Seleccionar fecha fin"
+                  />
+                )}
+              />
+              {form.formState.errors.fecha_fin && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.fecha_fin.message}
+                </p>
+              )}
             </div>
           </div>
 

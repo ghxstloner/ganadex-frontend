@@ -2,16 +2,24 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { Pagination } from "@/components/ui/pagination";
@@ -20,6 +28,11 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MotionFadeSlide } from "@/components/ui/animate";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Autocomplete, type AutocompleteOption } from "@/components/ui/autocomplete";
+import { ImageUpload } from "@/components/ui/image-upload";
 import NoPermission from "@/components/no-permission";
 
 import {
@@ -27,48 +40,49 @@ import {
   createAnimal,
   updateAnimal,
   deleteAnimal,
+  fetchRazas,
+  fetchColoresPelaje,
+  buscarAnimales,
+  createRaza,
+  createColor,
+  uploadAnimalPhoto,
   type AnimalesQuery,
+  type CreateRazaDTO,
+  type CreateColorDTO,
 } from "@/lib/api/animales.service";
 import { fetchFincas } from "@/lib/api/fincas.service";
-import type { Animal, CreateAnimalDTO, Finca } from "@/lib/types/business";
+import type {
+  Animal,
+  CreateAnimalDTO,
+  Finca,
+  Raza,
+  ColorPelaje,
+} from "@/lib/types/business";
 import { getStoredSession } from "@/lib/auth/storage";
 import { hasPermission } from "@/lib/auth/permissions";
 
 const animalSchema = z.object({
-  codigo: z.string().optional(),
   nombre: z.string().optional(),
-  sexo: z.enum(["macho", "hembra"]),
-  categoria: z.string().optional(),
-  estado: z.string().optional(),
+  sexo: z.enum(["M", "F"]),
   fecha_nacimiento: z.string().optional(),
-  raza: z.string().optional(),
-  finca_id: z.string().optional(),
+  fecha_nacimiento_estimada: z.boolean().optional(),
+  id_raza: z.string().optional(),
+  id_color_pelaje: z.string().optional(),
+  id_finca: z.string().min(1, "La finca es obligatoria"),
+  padre_id: z.string().optional(),
+  madre_id: z.string().optional(),
   notas: z.string().optional(),
 });
 
 type AnimalForm = z.infer<typeof animalSchema>;
 
 const sexoOptions = [
-  { value: "macho", label: "Macho" },
-  { value: "hembra", label: "Hembra" },
-];
-
-const categoriaOptions = [
-  { value: "ternero", label: "Ternero" },
-  { value: "novillo", label: "Novillo" },
-  { value: "vaca", label: "Vaca" },
-  { value: "toro", label: "Toro" },
-];
-
-const estadoOptions = [
-  { value: "activo", label: "Activo" },
-  { value: "inactivo", label: "Inactivo" },
-  { value: "vendido", label: "Vendido" },
-  { value: "muerto", label: "Muerto" },
+  { value: "M", label: "Macho" },
+  { value: "F", label: "Hembra" },
 ];
 
 function getSexoBadgeVariant(sexo: string) {
-  return sexo === "hembra" ? "default" : "info";
+  return sexo === "F" || sexo === "hembra" ? "default" : "info";
 }
 
 function getEstadoBadgeVariant(estado: string) {
@@ -96,6 +110,8 @@ export default function AnimalesPage() {
 
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [fincas, setFincas] = useState<Finca[]>([]);
+  const [razas, setRazas] = useState<Raza[]>([]);
+  const [colores, setColores] = useState<ColorPelaje[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
@@ -105,8 +121,12 @@ export default function AnimalesPage() {
   const [search, setSearch] = useState("");
   const [fincaFilter, setFincaFilter] = useState("");
   const [sexoFilter, setSexoFilter] = useState("");
-  const [categoriaFilter, setCategoriaFilter] = useState("");
-  const [estadoFilter, setEstadoFilter] = useState("");
+  const [razaFilter, setRazaFilter] = useState("");
+  const [colorFilter, setColorFilter] = useState("");
+  const [fechaDesdeFilter, setFechaDesdeFilter] = useState("");
+  const [fechaHastaFilter, setFechaHastaFilter] = useState("");
+  const [conPadreFilter, setConPadreFilter] = useState(false);
+  const [conMadreFilter, setConMadreFilter] = useState(false);
 
   // Modal states
   const [createOpen, setCreateOpen] = useState(false);
@@ -115,17 +135,38 @@ export default function AnimalesPage() {
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Modals for razas/colores
+  const [createRazaOpen, setCreateRazaOpen] = useState(false);
+  const [createColorOpen, setCreateColorOpen] = useState(false);
+  const [creatingRaza, setCreatingRaza] = useState(false);
+  const [creatingColor, setCreatingColor] = useState(false);
+
+  // Forms for razas/colores
+  const [razaForm, setRazaForm] = useState({ codigo: "", nombre: "" });
+  const [colorForm, setColorForm] = useState({ codigo: "", nombre: "" });
+
+  // Animal search for padre/madre
+  const [padreSearchResults, setPadreSearchResults] = useState<AutocompleteOption[]>([]);
+  const [madreSearchResults, setMadreSearchResults] = useState<AutocompleteOption[]>([]);
+  const [searchingPadre, setSearchingPadre] = useState(false);
+  const [searchingMadre, setSearchingMadre] = useState(false);
+
+  // Photo upload
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
   const form = useForm<AnimalForm>({
     resolver: zodResolver(animalSchema),
     defaultValues: {
-      codigo: "",
       nombre: "",
-      sexo: "macho",
-      categoria: "",
-      estado: "activo",
+      sexo: "M",
       fecha_nacimiento: "",
-      raza: "",
-      finca_id: "",
+      fecha_nacimiento_estimada: false,
+      id_raza: "",
+      id_color_pelaje: "",
+      id_finca: "",
+      padre_id: "",
+      madre_id: "",
       notas: "",
     },
   });
@@ -138,10 +179,15 @@ export default function AnimalesPage() {
         page,
         limit: 10,
         q: search || undefined,
+        id_finca: fincaFilter || undefined,
         finca_id: fincaFilter || undefined,
         sexo: sexoFilter || undefined,
-        categoria: categoriaFilter || undefined,
-        estado: estadoFilter || undefined,
+        id_raza: razaFilter || undefined,
+        id_color_pelaje: colorFilter || undefined,
+        fecha_nacimiento_desde: fechaDesdeFilter || undefined,
+        fecha_nacimiento_hasta: fechaHastaFilter || undefined,
+        con_padre: conPadreFilter || undefined,
+        con_madre: conMadreFilter || undefined,
       };
       const response = await fetchAnimales(query);
       setAnimals(response.items ?? []);
@@ -151,7 +197,18 @@ export default function AnimalesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, fincaFilter, sexoFilter, categoriaFilter, estadoFilter]);
+  }, [
+    page,
+    search,
+    fincaFilter,
+    sexoFilter,
+    razaFilter,
+    colorFilter,
+    fechaDesdeFilter,
+    fechaHastaFilter,
+    conPadreFilter,
+    conMadreFilter,
+  ]);
 
   const loadFincas = useCallback(async () => {
     try {
@@ -162,47 +219,154 @@ export default function AnimalesPage() {
     }
   }, []);
 
+  const loadRazas = useCallback(async () => {
+    try {
+      const data = await fetchRazas();
+      setRazas(data);
+    } catch {
+      // Silent fail
+    }
+  }, []);
+
+  const loadColores = useCallback(async () => {
+    try {
+      const data = await fetchColoresPelaje();
+      setColores(data);
+    } catch {
+      // Silent fail
+    }
+  }, []);
+
+  const handleSearchPadre = useCallback(async (query: string) => {
+    if (!query || query.length < 2) {
+      setPadreSearchResults([]);
+      return;
+    }
+    setSearchingPadre(true);
+    try {
+      const results = await buscarAnimales(query, "M");
+      setPadreSearchResults(
+        results.map((a) => ({
+          value: a.id,
+          label: a.nombre || a.identificacion || `Animal ${a.id.slice(0, 8)}`,
+          description: a.identificacion || undefined,
+        }))
+      );
+    } catch {
+      setPadreSearchResults([]);
+    } finally {
+      setSearchingPadre(false);
+    }
+  }, []);
+
+  const handleSearchMadre = useCallback(async (query: string) => {
+    if (!query || query.length < 2) {
+      setMadreSearchResults([]);
+      return;
+    }
+    setSearchingMadre(true);
+    try {
+      const results = await buscarAnimales(query, "F");
+      setMadreSearchResults(
+        results.map((a) => ({
+          value: a.id,
+          label: a.nombre || a.identificacion || `Animal ${a.id.slice(0, 8)}`,
+          description: a.identificacion || undefined,
+        }))
+      );
+    } catch {
+      setMadreSearchResults([]);
+    } finally {
+      setSearchingMadre(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadAnimals();
   }, [loadAnimals]);
 
   useEffect(() => {
     loadFincas();
-  }, [loadFincas]);
+    loadRazas();
+    loadColores();
+  }, [loadFincas, loadRazas, loadColores]);
 
   const fincaOptions = useMemo(
     () => fincas.map((f) => ({ value: f.id, label: f.nombre })),
     [fincas]
   );
 
+  const razaOptions = useMemo(
+    () => razas.map((r) => ({ value: r.id, label: r.nombre })),
+    [razas]
+  );
+
+  const colorOptions = useMemo(
+    () => colores.map((c) => ({ value: c.id, label: c.nombre })),
+    [colores]
+  );
+
   const openCreate = () => {
     form.reset({
-      codigo: "",
       nombre: "",
-      sexo: "macho",
-      categoria: "",
-      estado: "activo",
+      sexo: "M",
       fecha_nacimiento: "",
-      raza: "",
-      finca_id: "",
+      fecha_nacimiento_estimada: false,
+      id_raza: "",
+      id_color_pelaje: "",
+      id_finca: "",
+      padre_id: "",
+      madre_id: "",
       notas: "",
     });
+    setPadreSearchResults([]);
+    setMadreSearchResults([]);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setEditOpen(false);
     setCreateOpen(true);
   };
 
   const openEdit = (animal: Animal) => {
     setSelectedAnimal(animal);
+    const sexoValue = animal.sexo === "hembra" || animal.sexo === "F" ? "F" : "M";
     form.reset({
-      codigo: animal.codigo ?? "",
       nombre: animal.nombre ?? "",
-      sexo: animal.sexo,
-      categoria: animal.categoria ?? "",
-      estado: animal.estado ?? "activo",
+      sexo: sexoValue,
       fecha_nacimiento: animal.fecha_nacimiento ?? "",
-      raza: animal.raza ?? "",
-      finca_id: animal.finca_id ?? "",
+      fecha_nacimiento_estimada: animal.fecha_nacimiento_estimada ?? false,
+      id_raza: animal.id_raza ?? "",
+      id_color_pelaje: animal.id_color_pelaje ?? "",
+      id_finca: animal.id_finca ?? animal.finca_id ?? "",
+      padre_id: animal.padre_id ?? "",
+      madre_id: animal.madre_id ?? "",
       notas: animal.notas ?? "",
     });
+    // Load padre/madre names if they exist
+    if (animal.padre_id && animal.padre_nombre) {
+      setPadreSearchResults([
+        {
+          value: animal.padre_id,
+          label: animal.padre_nombre,
+        },
+      ]);
+    } else {
+      setPadreSearchResults([]);
+    }
+    if (animal.madre_id && animal.madre_nombre) {
+      setMadreSearchResults([
+        {
+          value: animal.madre_id,
+          label: animal.madre_nombre,
+        },
+      ]);
+    } else {
+      setMadreSearchResults([]);
+    }
+    // Load photo preview if exists
+    setPhotoFile(null);
+    setPhotoPreview(animal.foto_url ?? null);
+    setCreateOpen(false);
     setEditOpen(true);
   };
 
@@ -211,15 +375,22 @@ export default function AnimalesPage() {
     setDeleteOpen(true);
   };
 
+  const closeForm = () => {
+    setCreateOpen(false);
+    setEditOpen(false);
+    setSelectedAnimal(null);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+  };
+
   const handleCreate = async (values: AnimalForm) => {
     setSubmitting(true);
     try {
       const dto: CreateAnimalDTO = {
         ...values,
-        sexo: values.sexo as "macho" | "hembra",
       };
       const created = await createAnimal(dto);
-      setAnimals((prev) => [created, ...prev]);
+      await loadAnimals();
       toast.success("Animal creado");
       setCreateOpen(false);
     } catch {
@@ -234,9 +405,19 @@ export default function AnimalesPage() {
     setSubmitting(true);
     try {
       const updated = await updateAnimal(selectedAnimal.id, values);
-      setAnimals((prev) =>
-        prev.map((a) => (a.id === updated.id ? updated : a))
-      );
+      
+      // Upload photo if a new one was selected
+      if (photoFile) {
+        try {
+          await uploadAnimalPhoto(selectedAnimal.id, photoFile);
+        } catch (photoError) {
+          // Log but don't fail the update
+          console.error("Error uploading photo:", photoError);
+          toast.error("Animal actualizado, pero hubo un error al subir la foto");
+        }
+      }
+      
+      await loadAnimals();
       toast.success("Animal actualizado");
       setEditOpen(false);
     } catch {
@@ -251,7 +432,7 @@ export default function AnimalesPage() {
     setSubmitting(true);
     try {
       await deleteAnimal(selectedAnimal.id);
-      setAnimals((prev) => prev.filter((a) => a.id !== selectedAnimal.id));
+      await loadAnimals();
       toast.success("Animal eliminado");
       setDeleteOpen(false);
     } catch {
@@ -261,17 +442,71 @@ export default function AnimalesPage() {
     }
   };
 
+  const handleCreateRaza = async () => {
+    if (!razaForm.codigo || !razaForm.nombre) {
+      toast.error("Código y nombre son requeridos");
+      return;
+    }
+    setCreatingRaza(true);
+    try {
+      const nuevaRaza = await createRaza(razaForm);
+      await loadRazas();
+      toast.success("Raza creada");
+      setCreateRazaOpen(false);
+      setRazaForm({ codigo: "", nombre: "" });
+      // Seleccionar la nueva raza en el formulario
+      form.setValue("id_raza", nuevaRaza.id);
+    } catch {
+      // Error already toasted
+    } finally {
+      setCreatingRaza(false);
+    }
+  };
+
+  const handleCreateColor = async () => {
+    if (!colorForm.codigo || !colorForm.nombre) {
+      toast.error("Código y nombre son requeridos");
+      return;
+    }
+    setCreatingColor(true);
+    try {
+      const nuevoColor = await createColor(colorForm);
+      await loadColores();
+      toast.success("Color creado");
+      setCreateColorOpen(false);
+      setColorForm({ codigo: "", nombre: "" });
+      // Seleccionar el nuevo color en el formulario
+      form.setValue("id_color_pelaje", nuevoColor.id);
+    } catch {
+      // Error already toasted
+    } finally {
+      setCreatingColor(false);
+    }
+  };
+
   const clearFilters = () => {
     setSearch("");
     setFincaFilter("");
     setSexoFilter("");
-    setCategoriaFilter("");
-    setEstadoFilter("");
+    setRazaFilter("");
+    setColorFilter("");
+    setFechaDesdeFilter("");
+    setFechaHastaFilter("");
+    setConPadreFilter(false);
+    setConMadreFilter(false);
     setPage(1);
   };
 
   const hasFilters =
-    search || fincaFilter || sexoFilter || categoriaFilter || estadoFilter;
+    search ||
+    fincaFilter ||
+    sexoFilter ||
+    razaFilter ||
+    colorFilter ||
+    fechaDesdeFilter ||
+    fechaHastaFilter ||
+    conPadreFilter ||
+    conMadreFilter;
 
   const columns: DataTableColumn<Animal>[] = [
     {
@@ -291,11 +526,14 @@ export default function AnimalesPage() {
     {
       key: "sexo",
       header: "Sexo",
-      render: (animal) => (
-        <Badge variant={getSexoBadgeVariant(animal.sexo)}>
-          {animal.sexo === "hembra" ? "Hembra" : "Macho"}
+      render: (animal) => {
+        const sexoValue = animal.sexo === "F" || animal.sexo === "hembra" ? "F" : "M";
+        return (
+          <Badge variant={getSexoBadgeVariant(sexoValue)}>
+            {sexoValue === "F" ? "Hembra" : "Macho"}
         </Badge>
-      ),
+        );
+      },
     },
     {
       key: "categoria",
@@ -389,272 +627,402 @@ export default function AnimalesPage() {
 
         <Card className="border-border bg-card">
           <CardContent className="space-y-4 p-5">
-            <FiltersBar
-              search={search}
-              onSearchChange={(v) => {
-                setSearch(v);
-                setPage(1);
-              }}
-              searchPlaceholder="Buscar por código o nombre..."
-              showClear={!!hasFilters}
-              onClear={clearFilters}
-            >
-              <SelectFilter
-                value={fincaFilter}
-                onChange={(v) => {
-                  setFincaFilter(v);
-                  setPage(1);
-                }}
-                options={fincaOptions}
-                placeholder="Finca"
-              />
-              <SelectFilter
-                value={sexoFilter}
-                onChange={(v) => {
-                  setSexoFilter(v);
-                  setPage(1);
-                }}
-                options={sexoOptions}
-                placeholder="Sexo"
-              />
-              <SelectFilter
-                value={categoriaFilter}
-                onChange={(v) => {
-                  setCategoriaFilter(v);
-                  setPage(1);
-                }}
-                options={categoriaOptions}
-                placeholder="Categoría"
-              />
-              <SelectFilter
-                value={estadoFilter}
-                onChange={(v) => {
-                  setEstadoFilter(v);
-                  setPage(1);
-                }}
-                options={estadoOptions}
-                placeholder="Estado"
-              />
-            </FiltersBar>
+            {(createOpen || editOpen) && (
+              <Card className="border-primary/20">
+                <CardHeader className="border-b border-border">
+                  <div className="space-y-1">
+                    <CardTitle>
+                      {editOpen ? "Editar animal" : "Nuevo animal"}
+                    </CardTitle>
+                    <CardDescription>
+                      {editOpen
+                        ? "Actualiza los datos del animal."
+                        : "Ingresa los datos del animal."}
+                    </CardDescription>
+                  </div>
+                  <CardAction>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={closeForm}
+                      aria-label="Cerrar formulario"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </CardAction>
+                </CardHeader>
+                <form
+                  className="space-y-6"
+                  onSubmit={form.handleSubmit(
+                    editOpen ? handleEdit : handleCreate
+                  )}
+                >
+                  <CardContent className="space-y-6">
+                    <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+                      <div className="space-y-6">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="id_finca">Finca *</Label>
+                            <select
+                              id="id_finca"
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                              {...form.register("id_finca")}
+                            >
+                              <option value="">Seleccionar</option>
+                              {fincas.map((f) => (
+                                <option key={f.id} value={f.id}>
+                                  {f.nombre}
+                                </option>
+                              ))}
+                            </select>
+                            {form.formState.errors.id_finca && (
+                              <p className="text-xs text-destructive">
+                                {form.formState.errors.id_finca.message}
+                              </p>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="nombre">Nombre</Label>
+                            <Input
+                              id="nombre"
+                              {...form.register("nombre")}
+                              placeholder="Opcional"
+                            />
+                          </div>
+                        </div>
 
-            <DataTable
-              columns={columns}
-              data={animals}
-              keyExtractor={(a) => a.id}
-              loading={loading}
-              error={error}
-              onRetry={loadAnimals}
-              emptyState={{
-                title: "Sin animales",
-                description: "Agrega tu primer animal para comenzar.",
-                action: canCreate
-                  ? { label: "Nuevo animal", onClick: openCreate }
-                  : undefined,
-              }}
-            />
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="sexo">Sexo *</Label>
+                            <select
+                              id="sexo"
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                              {...form.register("sexo")}
+                            >
+                              <option value="M">Macho</option>
+                              <option value="F">Hembra</option>
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="fecha_nacimiento">
+                              Fecha de nacimiento
+                            </Label>
+                            <Controller
+                              name="fecha_nacimiento"
+                              control={form.control}
+                              render={({ field }) => (
+                                <DatePicker
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  placeholder="Seleccionar fecha"
+                                />
+                              )}
+                            />
+                          </div>
+                        </div>
 
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-            />
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="fecha_nacimiento_estimada"
+                              checked={form.watch("fecha_nacimiento_estimada")}
+                              onCheckedChange={(checked) =>
+                                form.setValue(
+                                  "fecha_nacimiento_estimada",
+                                  !!checked
+                                )
+                              }
+                            />
+                            <Label
+                              htmlFor="fecha_nacimiento_estimada"
+                              className="text-sm font-normal cursor-pointer"
+                            >
+                              Fecha de nacimiento estimada
+                            </Label>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="id_raza">Raza</Label>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setCreateRazaOpen(true);
+                                }}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Nueva
+                              </Button>
+                            </div>
+                            <select
+                              id="id_raza"
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                              {...form.register("id_raza")}
+                            >
+                              <option value="">Seleccionar</option>
+                              {razas.map((r) => (
+                                <option key={r.id} value={r.id}>
+                                  {r.nombre}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="id_color_pelaje">
+                                Color de pelaje
+                              </Label>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setCreateColorOpen(true);
+                                }}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Nuevo
+                              </Button>
+                            </div>
+                            <select
+                              id="id_color_pelaje"
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                              {...form.register("id_color_pelaje")}
+                            >
+                              <option value="">Seleccionar</option>
+                              {colores.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.nombre}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="padre_id">Padre</Label>
+                            <Controller
+                              name="padre_id"
+                              control={form.control}
+                              render={({ field }) => (
+                                <Autocomplete
+                                  value={field.value}
+                                  onChange={(value) => {
+                                    field.onChange(value);
+                                    if (!value) {
+                                      setPadreSearchResults([]);
+                                    }
+                                  }}
+                                  options={padreSearchResults}
+                                  placeholder="Buscar padre (macho)..."
+                                  searchPlaceholder="Buscar por nombre o identificación..."
+                                  emptyText="No se encontraron animales machos"
+                                  onSearch={handleSearchPadre}
+                                  loading={searchingPadre}
+                                />
+                              )}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="madre_id">Madre</Label>
+                            <Controller
+                              name="madre_id"
+                              control={form.control}
+                              render={({ field }) => (
+                                <Autocomplete
+                                  value={field.value}
+                                  onChange={(value) => {
+                                    field.onChange(value);
+                                    if (!value) {
+                                      setMadreSearchResults([]);
+                                    }
+                                  }}
+                                  options={madreSearchResults}
+                                  placeholder="Buscar madre (hembra)..."
+                                  searchPlaceholder="Buscar por nombre o identificación..."
+                                  emptyText="No se encontraron animales hembras"
+                                  onSearch={handleSearchMadre}
+                                  loading={searchingMadre}
+                                />
+                              )}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="notas">Notas</Label>
+                          <textarea
+                            id="notas"
+                            className="w-full min-h-[100px] rounded-md border border-border bg-background px-3 py-2 text-sm"
+                            {...form.register("notas")}
+                            placeholder="Opcional"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            Foto del animal
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Sube una imagen clara para identificarlo.
+                          </p>
+                        </div>
+                        <ImageUpload
+                          value={photoFile || photoPreview}
+                          onChange={(file) => {
+                            setPhotoFile(file);
+                            if (!file) {
+                              setPhotoPreview(null);
+                            }
+                          }}
+                          disabled={submitting}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="justify-end gap-2 border-t border-border">
+                    <Button type="button" variant="ghost" onClick={closeForm}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={submitting}>
+                      {submitting && (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      )}
+                      {editOpen ? "Guardar cambios" : "Guardar"}
+                    </Button>
+                  </CardFooter>
+                </form>
+              </Card>
+            )}
+            {!createOpen && !editOpen && (
+              <>
+                <FiltersBar
+                  search={search}
+                  onSearchChange={(v) => {
+                    setSearch(v);
+                    setPage(1);
+                  }}
+                  searchPlaceholder="Buscar por nombre o identificación..."
+                  showClear={!!hasFilters}
+                  onClear={clearFilters}
+                >
+                  <SelectFilter
+                    value={fincaFilter}
+                    onChange={(v) => {
+                      setFincaFilter(v);
+                      setPage(1);
+                    }}
+                    options={fincaOptions}
+                    placeholder="Finca"
+                  />
+                  <SelectFilter
+                    value={sexoFilter}
+                    onChange={(v) => {
+                      setSexoFilter(v);
+                      setPage(1);
+                    }}
+                    options={sexoOptions}
+                    placeholder="Sexo"
+                  />
+                  <SelectFilter
+                    value={razaFilter}
+                    onChange={(v) => {
+                      setRazaFilter(v);
+                      setPage(1);
+                    }}
+                    options={razaOptions}
+                    placeholder="Raza"
+                  />
+                  <SelectFilter
+                    value={colorFilter}
+                    onChange={(v) => {
+                      setColorFilter(v);
+                      setPage(1);
+                    }}
+                    options={colorOptions}
+                    placeholder="Color"
+                  />
+                  <div className="flex items-center gap-2">
+                    <DatePicker
+                      value={fechaDesdeFilter}
+                      onChange={(v) => {
+                        setFechaDesdeFilter(v);
+                        setPage(1);
+                      }}
+                      placeholder="Nacimiento desde"
+                      className="w-[180px]"
+                    />
+                    <DatePicker
+                      value={fechaHastaFilter}
+                      onChange={(v) => {
+                        setFechaHastaFilter(v);
+                        setPage(1);
+                      }}
+                      placeholder="Nacimiento hasta"
+                      className="w-[180px]"
+                    />
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Label className="flex items-center gap-2">
+                      <Checkbox
+                        checked={conPadreFilter}
+                        onCheckedChange={(checked) => {
+                          setConPadreFilter(!!checked);
+                          setPage(1);
+                        }}
+                      />
+                      Con padre
+                    </Label>
+                    <Label className="flex items-center gap-2">
+                      <Checkbox
+                        checked={conMadreFilter}
+                        onCheckedChange={(checked) => {
+                          setConMadreFilter(!!checked);
+                          setPage(1);
+                        }}
+                      />
+                      Con madre
+                    </Label>
+                  </div>
+                </FiltersBar>
+
+                <DataTable
+                  columns={columns}
+                  data={animals}
+                  keyExtractor={(a) => a.id}
+                  loading={loading}
+                  error={error}
+                  onRetry={loadAnimals}
+                  emptyState={{
+                    title: "Sin animales",
+                    description: "Agrega tu primer animal para comenzar.",
+                    action: canCreate
+                      ? { label: "Nuevo animal", onClick: openCreate }
+                      : undefined,
+                  }}
+                />
+
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                />
+              </>
+            )}
           </CardContent>
         </Card>
-
-        {/* Create Modal */}
-        <Modal
-          open={createOpen}
-          onClose={() => setCreateOpen(false)}
-          title="Nuevo animal"
-          description="Ingresa los datos del animal."
-        >
-          <form
-            className="space-y-4"
-            onSubmit={form.handleSubmit(handleCreate)}
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Código</label>
-                <Input {...form.register("codigo")} placeholder="Ej: BOV-001" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nombre</label>
-                <Input {...form.register("nombre")} placeholder="Opcional" />
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Sexo *</label>
-                <select
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  {...form.register("sexo")}
-                >
-                  <option value="macho">Macho</option>
-                  <option value="hembra">Hembra</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Categoría</label>
-                <select
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  {...form.register("categoria")}
-                >
-                  <option value="">Seleccionar</option>
-                  {categoriaOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Estado</label>
-                <select
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  {...form.register("estado")}
-                >
-                  {estadoOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Finca</label>
-                <select
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  {...form.register("finca_id")}
-                >
-                  <option value="">Seleccionar</option>
-                  {fincas.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Fecha nacimiento</label>
-                <Input type="date" {...form.register("fecha_nacimiento")} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Raza</label>
-                <Input {...form.register("raza")} placeholder="Ej: Brahman" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Notas</label>
-              <Input {...form.register("notas")} placeholder="Opcional" />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setCreateOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                Guardar
-              </Button>
-            </div>
-          </form>
-        </Modal>
-
-        {/* Edit Modal */}
-        <Modal
-          open={editOpen}
-          onClose={() => setEditOpen(false)}
-          title="Editar animal"
-          description="Actualiza los datos del animal."
-        >
-          <form className="space-y-4" onSubmit={form.handleSubmit(handleEdit)}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Código</label>
-                <Input {...form.register("codigo")} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nombre</label>
-                <Input {...form.register("nombre")} />
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Sexo</label>
-                <select
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  {...form.register("sexo")}
-                >
-                  <option value="macho">Macho</option>
-                  <option value="hembra">Hembra</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Categoría</label>
-                <select
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  {...form.register("categoria")}
-                >
-                  <option value="">Seleccionar</option>
-                  {categoriaOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Estado</label>
-                <select
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  {...form.register("estado")}
-                >
-                  {estadoOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Finca</label>
-                <select
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  {...form.register("finca_id")}
-                >
-                  <option value="">Seleccionar</option>
-                  {fincas.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setEditOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                Guardar cambios
-              </Button>
-            </div>
-          </form>
-        </Modal>
 
         {/* Delete Dialog */}
         <ConfirmDialog
@@ -666,6 +1034,118 @@ export default function AnimalesPage() {
           confirmLabel="Eliminar"
           loading={submitting}
         />
+
+        {/* Create Raza Modal */}
+        <Modal
+          open={createRazaOpen}
+          onClose={() => {
+            setCreateRazaOpen(false);
+            setRazaForm({ codigo: "", nombre: "" });
+          }}
+          title="Nueva raza"
+          description="Crea una nueva raza para tu empresa."
+        >
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="raza_codigo">Código *</Label>
+              <Input
+                id="raza_codigo"
+                value={razaForm.codigo}
+                onChange={(e) =>
+                  setRazaForm({ ...razaForm, codigo: e.target.value })
+                }
+                placeholder="Ej: BRA"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="raza_nombre">Nombre *</Label>
+              <Input
+                id="raza_nombre"
+                value={razaForm.nombre}
+                onChange={(e) =>
+                  setRazaForm({ ...razaForm, nombre: e.target.value })
+                }
+                placeholder="Ej: Brahman"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setCreateRazaOpen(false);
+                  setRazaForm({ codigo: "", nombre: "" });
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleCreateRaza}
+                disabled={creatingRaza}
+              >
+                {creatingRaza && <Loader2 className="h-4 w-4 animate-spin" />}
+                Crear
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Create Color Modal */}
+        <Modal
+          open={createColorOpen}
+          onClose={() => {
+            setCreateColorOpen(false);
+            setColorForm({ codigo: "", nombre: "" });
+          }}
+          title="Nuevo color de pelaje"
+          description="Crea un nuevo color de pelaje."
+        >
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="color_codigo">Código *</Label>
+              <Input
+                id="color_codigo"
+                value={colorForm.codigo}
+                onChange={(e) =>
+                  setColorForm({ ...colorForm, codigo: e.target.value })
+                }
+                placeholder="Ej: NEGRO"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="color_nombre">Nombre *</Label>
+              <Input
+                id="color_nombre"
+                value={colorForm.nombre}
+                onChange={(e) =>
+                  setColorForm({ ...colorForm, nombre: e.target.value })
+                }
+                placeholder="Ej: Negro"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setCreateColorOpen(false);
+                  setColorForm({ codigo: "", nombre: "" });
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleCreateColor}
+                disabled={creatingColor}
+              >
+                {creatingColor && <Loader2 className="h-4 w-4 animate-spin" />}
+                Crear
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </MotionFadeSlide>
   );

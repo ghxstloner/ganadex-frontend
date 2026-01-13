@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MotionFadeSlide } from "@/components/ui/animate";
+import { DatePicker } from "@/components/ui/date-picker";
 import NoPermission from "@/components/no-permission";
 
 import {
@@ -389,7 +390,22 @@ export default function MovimientosPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Fecha *</label>
-                <Input type="date" {...form.register("fecha")} />
+                <Controller
+                  name="fecha"
+                  control={form.control}
+                  render={({ field }) => (
+                    <DatePicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Seleccionar fecha"
+                    />
+                  )}
+                />
+                {form.formState.errors.fecha && (
+                  <p className="text-xs text-destructive">
+                    {form.formState.errors.fecha.message}
+                  </p>
+                )}
               </div>
             </div>
             <div className="space-y-2">

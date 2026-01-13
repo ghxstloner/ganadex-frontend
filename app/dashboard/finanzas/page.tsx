@@ -22,6 +22,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MetricCard } from "@/components/ui/metric-cards";
 import { MotionFadeSlide } from "@/components/ui/animate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import NoPermission from "@/components/no-permission";
 
 import {
@@ -238,7 +239,22 @@ function TransaccionesTab({ categorias }: { categorias: CategoriaFinanciera[] })
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Fecha *</label>
-              <Input type="date" {...form.register("fecha")} />
+              <Controller
+                name="fecha"
+                control={form.control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Seleccionar fecha"
+                  />
+                )}
+              />
+              {form.formState.errors.fecha && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.fecha.message}
+                </p>
+              )}
             </div>
           </div>
           <div className="space-y-2">

@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,8 @@ import { registerSchema, type RegisterSchema } from "@/lib/validators/auth";
 export default function RegisterPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -101,7 +103,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col px-8 py-8 sm:px-12 lg:px-16">
+    <div className="flex min-h-screen flex-col px-6 py-8 sm:px-10 lg:px-16">
       {/* Logo */}
       <div className="flex items-center gap-2">
         <Image
@@ -112,7 +114,7 @@ export default function RegisterPage() {
           className="h-6 w-6"
           priority
         />
-        <span className="text-lg font-medium tracking-tight text-gray-900 dark:text-gray-100">
+        <span className="text-lg font-semibold tracking-tight text-foreground">
           Ganadex
         </span>
       </div>
@@ -120,12 +122,16 @@ export default function RegisterPage() {
       {/* Form container - centered */}
       <div className="flex flex-1 flex-col justify-center py-8">
         <div className="mx-auto w-full max-w-md">
+          <div className="rounded-3xl border border-border bg-card/80 p-8 shadow-sm backdrop-blur animate-fade-in">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="font-serif text-4xl font-light italic tracking-tight text-gray-900 dark:text-gray-100">
+          <div className="mb-8 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+              Nuevo acceso
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
               Crea tu cuenta
             </h1>
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-muted-foreground">
               Configura tu empresa y empieza a operar con claridad
             </p>
           </div>
@@ -137,7 +143,7 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <Label
                   htmlFor="nombre"
-                  className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                  className="text-sm font-medium text-foreground"
                 >
                   Nombre
                 </Label>
@@ -145,18 +151,18 @@ export default function RegisterPage() {
                   id="nombre"
                   placeholder="Juan Pérez"
                   autoComplete="name"
-                  className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
+                  className="h-12 border-border bg-background/70 text-foreground placeholder:text-muted-foreground focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/30 dark:bg-background/60"
                   {...register("nombre")}
                 />
                 {errors.nombre && (
-                  <p className="text-xs text-red-500 dark:text-red-400">{errors.nombre.message}</p>
+                  <p className="text-xs text-destructive">{errors.nombre.message}</p>
                 )}
               </div>
 
               <div className="space-y-2">
                 <Label
                   htmlFor="telefono"
-                  className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                  className="text-sm font-medium text-foreground"
                 >
                   Teléfono
                 </Label>
@@ -164,11 +170,11 @@ export default function RegisterPage() {
                   id="telefono"
                   placeholder="+58912345678"
                   autoComplete="tel"
-                  className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
+                  className="h-12 border-border bg-background/70 text-foreground placeholder:text-muted-foreground focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/30 dark:bg-background/60"
                   {...register("telefono")}
                 />
                 {errors.telefono && (
-                  <p className="text-xs text-red-500 dark:text-red-400">
+                  <p className="text-xs text-destructive">
                     {errors.telefono.message}
                   </p>
                 )}
@@ -179,7 +185,7 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label
                 htmlFor="email"
-                className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                className="text-sm font-medium text-foreground"
               >
                 Correo electrónico
               </Label>
@@ -188,11 +194,11 @@ export default function RegisterPage() {
                 type="email"
                 placeholder="usuario@empresa.com"
                 autoComplete="email"
-                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
+                className="h-12 border-border bg-background/70 text-foreground placeholder:text-muted-foreground focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/30 dark:bg-background/60"
                 {...register("email")}
               />
               {errors.email && (
-                <p className="text-xs text-red-500 dark:text-red-400">{errors.email.message}</p>
+                <p className="text-xs text-destructive">{errors.email.message}</p>
               )}
             </div>
 
@@ -200,20 +206,34 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label
                 htmlFor="password"
-                className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                className="text-sm font-medium text-foreground"
               >
                 Contraseña
               </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Más de 8 caracteres"
-                autoComplete="new-password"
-                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
-                {...register("password")}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Más de 8 caracteres"
+                  autoComplete="new-password"
+                  className="h-12 border-border bg-background/70 pr-10 text-foreground placeholder:text-muted-foreground focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/30 dark:bg-background/60"
+                  {...register("password")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
               {errors.password && (
-                <p className="text-xs text-red-500 dark:text-red-400">
+                <p className="text-xs text-destructive">
                   {errors.password.message}
                 </p>
               )}
@@ -223,30 +243,44 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label
                 htmlFor="confirmPassword"
-                className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                className="text-sm font-medium text-foreground"
               >
                 Confirmar contraseña
               </Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Repite tu contraseña"
-                autoComplete="new-password"
-                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
-                {...register("confirmPassword")}
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Repite tu contraseña"
+                  autoComplete="new-password"
+                  className="h-12 border-border bg-background/70 pr-10 text-foreground placeholder:text-muted-foreground focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/30 dark:bg-background/60"
+                  {...register("confirmPassword")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
+                  aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
               {errors.confirmPassword && (
-                <p className="text-xs text-red-500 dark:text-red-400">
+                <p className="text-xs text-destructive">
                   {errors.confirmPassword.message}
                 </p>
               )}
             </div>
 
             {/* Empresa section */}
-            <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-5 dark:border-gray-700 dark:bg-gray-800/50">
+            <div className="rounded-2xl border border-border bg-muted/40 p-5">
               <div className="mb-4">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Empresa</h3>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <h3 className="text-sm font-semibold text-foreground">Empresa</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
                   Únete a una empresa existente o crea una nueva
                 </p>
               </div>
@@ -255,7 +289,7 @@ export default function RegisterPage() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="empresa_id"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    className="text-sm font-medium text-muted-foreground"
                   >
                     Unirme a empresa
                   </Label>
@@ -263,11 +297,11 @@ export default function RegisterPage() {
                     id="empresa_id"
                     placeholder="ID de empresa"
                     disabled={disableEmpresaId}
-                    className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 disabled:opacity-40 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-500 dark:disabled:opacity-30"
+                    className="h-12 border-border bg-background/70 text-foreground placeholder:text-muted-foreground focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/30 disabled:opacity-40 dark:bg-background/60"
                     {...register("empresa_id")}
                   />
                   {errors.empresa_id && (
-                    <p className="text-xs text-red-500 dark:text-red-400">
+                    <p className="text-xs text-destructive">
                       {errors.empresa_id.message}
                     </p>
                   )}
@@ -276,7 +310,7 @@ export default function RegisterPage() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="empresa_nombre"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    className="text-sm font-medium text-muted-foreground"
                   >
                     Crear nueva empresa
                   </Label>
@@ -284,11 +318,11 @@ export default function RegisterPage() {
                     id="empresa_nombre"
                     placeholder="Nombre de empresa"
                     disabled={disableEmpresaNombre}
-                    className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 disabled:opacity-40 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-500 dark:disabled:opacity-30"
+                    className="h-12 border-border bg-background/70 text-foreground placeholder:text-muted-foreground focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/30 disabled:opacity-40 dark:bg-background/60"
                     {...register("empresa_nombre")}
                   />
                   {errors.empresa_nombre && (
-                    <p className="text-xs text-red-500 dark:text-red-400">
+                    <p className="text-xs text-destructive">
                       {errors.empresa_nombre.message}
                     </p>
                   )}
@@ -300,7 +334,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-12 w-full bg-gray-900 font-medium text-white transition-all hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
+              className="h-12 w-full font-medium"
             >
               {isSubmitting ? (
                 <>
@@ -313,15 +347,16 @@ export default function RegisterPage() {
             </Button>
 
           </form>
+          </div>
         </div>
       </div>
 
       {/* Footer */}
       <div className="flex items-center justify-center gap-1 pt-4 text-sm">
-        <span className="text-gray-500 dark:text-gray-400">¿Ya tienes una cuenta?</span>
+        <span className="text-muted-foreground">¿Ya tienes una cuenta?</span>
         <Link
           href="/login"
-          className="font-medium text-gray-900 underline underline-offset-4 transition-colors hover:text-gray-700 dark:text-gray-100 dark:hover:text-gray-300"
+          className="font-medium text-foreground underline underline-offset-4 transition-colors hover:text-foreground/70"
         >
           Inicia sesión
         </Link>

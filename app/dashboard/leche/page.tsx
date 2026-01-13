@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Droplet, Loader2, Plus, Trash2 } from "lucide-react";
@@ -20,6 +20,7 @@ import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MetricCard } from "@/components/ui/metric-cards";
 import { MotionFadeSlide } from "@/components/ui/animate";
+import { DatePicker } from "@/components/ui/date-picker";
 import NoPermission from "@/components/no-permission";
 
 import {
@@ -171,7 +172,22 @@ function EntregasTab() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Fecha *</label>
-              <Input type="date" {...form.register("fecha")} />
+              <Controller
+                name="fecha"
+                control={form.control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Seleccionar fecha"
+                  />
+                )}
+              />
+              {form.formState.errors.fecha && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.fecha.message}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Litros *</label>
@@ -323,11 +339,41 @@ function LiquidacionesTab() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Inicio *</label>
-              <Input type="date" {...form.register("periodo_inicio")} />
+              <Controller
+                name="periodo_inicio"
+                control={form.control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Seleccionar fecha inicio"
+                  />
+                )}
+              />
+              {form.formState.errors.periodo_inicio && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.periodo_inicio.message}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Fin *</label>
-              <Input type="date" {...form.register("periodo_fin")} />
+              <Controller
+                name="periodo_fin"
+                control={form.control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Seleccionar fecha fin"
+                  />
+                )}
+              />
+              {form.formState.errors.periodo_fin && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.periodo_fin.message}
+                </p>
+              )}
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -385,11 +431,11 @@ function ConciliacionTab() {
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Desde</label>
-          <Input type="date" value={periodo.inicio} onChange={(e) => setPeriodo((p) => ({ ...p, inicio: e.target.value }))} />
+          <DatePicker value={periodo.inicio} onChange={(date) => setPeriodo((p) => ({ ...p, inicio: date }))} placeholder="Desde" />
         </div>
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Hasta</label>
-          <Input type="date" value={periodo.fin} onChange={(e) => setPeriodo((p) => ({ ...p, fin: e.target.value }))} />
+          <DatePicker value={periodo.fin} onChange={(date) => setPeriodo((p) => ({ ...p, fin: date }))} placeholder="Hasta" />
         </div>
         <Button onClick={loadData} disabled={loading}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Consultar"}

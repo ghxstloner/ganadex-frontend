@@ -9,6 +9,7 @@ import {
   Banknote,
   Building2,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ClipboardCheck,
   Droplet,
@@ -273,6 +274,7 @@ export default function DashboardLayout({
   const [session, setSession] = useState<GanadexSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -385,7 +387,9 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      <div className="lg:pl-72 w-full">
+      <div
+        className={cn("w-full", sidebarCollapsed ? "lg:pl-0" : "lg:pl-72")}
+      >
         {/* Mobile Header */}
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 px-4 py-3 shadow-sm lg:hidden w-full">
           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -414,6 +418,20 @@ export default function DashboardLayout({
         {/* Desktop Header */}
         <header className="sticky top-0 z-30 hidden items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 px-6 py-3 shadow-sm lg:flex w-full">
           <div className="flex items-center gap-4 flex-1 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarCollapsed((prev) => !prev)}
+              aria-label={
+                sidebarCollapsed ? "Mostrar sidebar" : "Ocultar sidebar"
+              }
+            >
+              {sidebarCollapsed ? (
+                <Menu className="h-5 w-5" />
+              ) : (
+                <ChevronLeft className="h-5 w-5" />
+              )}
+            </Button>
             <CompanySwitcher
               empresas={session.empresas}
               empresaActivaId={session.empresa_activa_id}
@@ -447,7 +465,8 @@ export default function DashboardLayout({
       <aside
         className={cn(
           "fixed left-0 top-0 z-50 flex h-full w-72 flex-col border-r border-border bg-sidebar shadow-xl transition-transform lg:translate-x-0 lg:shadow-none",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          sidebarCollapsed ? "lg:-translate-x-full" : "lg:translate-x-0"
         )}
         style={{ height: '100vh' }}
       >

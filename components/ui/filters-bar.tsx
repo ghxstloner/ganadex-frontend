@@ -70,13 +70,19 @@ export function SelectFilter({
     placeholder = "Todos",
     className,
 }: SelectFilterProps) {
+    const ALL_VALUE = "__all__";
+    const selectValue = value || ALL_VALUE;
+    
     return (
-        <Select value={value || undefined} onValueChange={(val) => onChange(val || "")}>
+        <Select 
+            value={selectValue} 
+            onValueChange={(val) => onChange(val === ALL_VALUE ? "" : val)}
+        >
             <SelectTrigger className={cn("w-[180px]", className)}>
                 <SelectValue placeholder={placeholder} />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value="">{placeholder}</SelectItem>
+                <SelectItem value={ALL_VALUE}>{placeholder}</SelectItem>
                 {options.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}

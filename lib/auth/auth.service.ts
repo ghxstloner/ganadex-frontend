@@ -22,6 +22,7 @@ export async function register(
     method: "POST",
     body: data,
     skipTenant: true,
+    toastOnError: false,
   });
 }
 
@@ -30,6 +31,7 @@ export async function login(data: LoginRequest): Promise<AuthLoginResponse> {
     method: "POST",
     body: data,
     skipTenant: true,
+    toastOnError: false,
   });
 }
 

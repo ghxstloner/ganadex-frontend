@@ -22,21 +22,28 @@ export type Animal = {
     id: string;
     codigo?: string | null;
     nombre?: string | null;
-    sexo: "macho" | "hembra";
+    sexo: "M" | "F" | "macho" | "hembra";
     categoria?: string | null;
-    estado: "activo" | "inactivo" | "vendido" | "muerto";
+    estado?: string | null;
     fecha_nacimiento?: string | null;
+    fecha_nacimiento_estimada?: boolean;
     peso_actual?: number | null;
-    raza?: string | null;
-    color?: string | null;
+    id_raza?: string | null;
+    raza_nombre?: string | null;
+    id_color_pelaje?: string | null;
+    color_pelaje_nombre?: string | null;
     finca_id?: string | null;
+    id_finca?: string | null;
     finca_nombre?: string | null;
     lote_id?: string | null;
     lote_nombre?: string | null;
     potrero_id?: string | null;
     potrero_nombre?: string | null;
     madre_id?: string | null;
+    madre_nombre?: string | null;
     padre_id?: string | null;
+    padre_nombre?: string | null;
+    foto_url?: string | null;
     identificador_principal?: string | null;
     notas?: string | null;
     created_at?: string;
@@ -44,39 +51,93 @@ export type Animal = {
 };
 
 export type AnimalPerfil = Animal & {
+    estado_actual?: {
+        id: string;
+        codigo: string;
+        nombre: string;
+        desde: string;
+        hasta?: string | null;
+    } | null;
+    categoria_actual?: {
+        id: string;
+        codigo: string;
+        nombre: string;
+        desde: string;
+        hasta?: string | null;
+    } | null;
     identificaciones: Identificacion[];
-    ultimos_movimientos: Movimiento[];
-    ultimos_eventos_salud: EventoSanitario[];
-    ultimos_eventos_reproduccion: EventoReproductivo[];
+    historial_estados?: HistorialEstado[];
+    historial_categorias?: HistorialCategoria[];
+    eventos_sanitarios_recientes?: Array<{
+        id: string;
+        fecha: string;
+        enfermedad?: string | null;
+        descripcion?: string | null;
+    }>;
+    eventos_reproductivos_recientes?: Array<{
+        id: string;
+        fecha: string;
+        tipo: string;
+        detalles?: string | null;
+    }>;
+    movimientos_recientes?: Array<{
+        id: string;
+        fecha_hora: string;
+        motivo?: string | null;
+        potrero_destino?: string | null;
+        lote_destino?: string | null;
+    }>;
+    ultimos_movimientos?: Movimiento[];
+    ultimos_eventos_salud?: EventoSanitario[];
+    ultimos_eventos_reproduccion?: EventoReproductivo[];
     retiro_activo?: RetiroSanitario | null;
     edad_meses?: number | null;
 };
 
+export type HistorialEstado = {
+    id: string;
+    estado_id: string;
+    estado_codigo: string;
+    estado_nombre: string;
+    fecha_inicio: string;
+    fecha_fin?: string | null;
+    motivo?: string | null;
+};
+
+export type HistorialCategoria = {
+    id: string;
+    categoria_id: string;
+    categoria_codigo: string;
+    categoria_nombre: string;
+    fecha_inicio: string;
+    fecha_fin?: string | null;
+    observaciones?: string | null;
+};
+
 export type Identificacion = {
     id: string;
-    animal_id: string;
+    animal_id?: string;
     tipo: string;
+    tipo_id?: string;
     valor: string;
-    es_principal: boolean;
+    activo: boolean;
+    fecha_asignacion: string;
+    observaciones?: string | null;
+    es_principal?: boolean;
     fecha_registro?: string | null;
     notas?: string | null;
 };
 
 export type CreateAnimalDTO = {
-    codigo?: string;
     nombre?: string;
-    sexo: "macho" | "hembra";
-    categoria?: string;
-    estado?: string;
+    sexo: "M" | "F";
     fecha_nacimiento?: string;
-    peso_actual?: number;
-    raza?: string;
-    color?: string;
-    finca_id?: string;
-    lote_id?: string;
-    potrero_id?: string;
-    madre_id?: string;
+    fecha_nacimiento_estimada?: boolean;
+    id_raza?: string;
+    id_color_pelaje?: string;
+    id_finca: string;
     padre_id?: string;
+    madre_id?: string;
     notas?: string;
 };
 
@@ -558,4 +619,24 @@ export type Finca = {
     nombre: string;
     ubicacion?: string | null;
     area_hectareas?: number | null;
+};
+
+export type Raza = {
+    id: string;
+    codigo: string;
+    nombre: string;
+    es_global?: boolean;
+};
+
+export type ColorPelaje = {
+    id: string;
+    codigo: string;
+    nombre: string;
+};
+
+export type AnimalBusqueda = {
+    id: string;
+    nombre: string;
+    sexo: "M" | "F";
+    identificacion?: string | null;
 };

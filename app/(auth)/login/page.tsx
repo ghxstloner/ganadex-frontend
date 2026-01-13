@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -58,7 +59,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col px-8 py-8 sm:px-12 lg:px-16">
+    <div className="flex min-h-screen flex-col px-6 py-8 sm:px-10 lg:px-16">
       {/* Logo */}
       <div className="flex items-center gap-2">
         <Image
@@ -69,21 +70,25 @@ export default function LoginPage() {
           className="h-6 w-6"
           priority
         />
-        <span className="text-lg font-medium tracking-tight text-gray-900 dark:text-gray-100">
+        <span className="text-lg font-semibold tracking-tight text-foreground">
           Ganadex
         </span>
       </div>
 
       {/* Form container - centered */}
       <div className="flex flex-1 flex-col justify-center">
-        <div className="mx-auto w-full max-w-sm">
+        <div className="mx-auto w-full max-w-md">
+          <div className="rounded-3xl border border-border bg-card/80 p-8 shadow-sm backdrop-blur animate-fade-in">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="font-serif text-4xl font-light italic tracking-tight text-gray-900 dark:text-gray-100">
-              Bienvenido de vuelta!
+          <div className="mb-8 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+              Acceso seguro
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+              Bienvenido de vuelta
             </h1>
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-              Ingresa tus credenciales para acceder a tu panel de control
+            <p className="text-sm text-muted-foreground">
+              Ingresa tus credenciales para volver a tu panel de control
             </p>
           </div>
 
@@ -92,7 +97,7 @@ export default function LoginPage() {
             <div className="space-y-2">
               <Label
                 htmlFor="email"
-                className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                className="text-sm font-medium text-foreground"
               >
                 Correo electrónico
               </Label>
@@ -101,31 +106,45 @@ export default function LoginPage() {
                 type="email"
                 placeholder="Ingresa tu correo"
                 autoComplete="email"
-                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
+                className="h-12 border-border bg-background/70 text-foreground placeholder:text-muted-foreground focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/30 dark:bg-background/60"
                 {...register("email")}
               />
               {errors.email && (
-                <p className="text-xs text-red-500 dark:text-red-400">{errors.email.message}</p>
+                <p className="text-xs text-destructive">{errors.email.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
               <Label
                 htmlFor="password"
-                className="text-sm font-medium text-gray-900 dark:text-gray-100"
+                className="text-sm font-medium text-foreground"
               >
                 Contraseña
               </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                autoComplete="current-password"
-                className="h-12 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-400 focus-visible:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus-visible:border-gray-600"
-                {...register("password")}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="h-12 border-border bg-background/70 pr-10 text-foreground placeholder:text-muted-foreground focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/30 dark:bg-background/60"
+                  {...register("password")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
               {errors.password && (
-                <p className="text-xs text-red-500 dark:text-red-400">
+                <p className="text-xs text-destructive">
                   {errors.password.message}
                 </p>
               )}
@@ -140,18 +159,18 @@ export default function LoginPage() {
                   onCheckedChange={(checked) =>
                     setRememberMe(checked as boolean)
                   }
-                  className="border-gray-300 data-[state=checked]:border-gray-900 data-[state=checked]:bg-gray-900 dark:border-gray-600 dark:data-[state=checked]:border-gray-100 dark:data-[state=checked]:bg-gray-100"
+                  className="border-border data-[state=checked]:border-primary data-[state=checked]:bg-primary"
                 />
                 <Label
                   htmlFor="remember"
-                  className="cursor-pointer text-sm text-gray-600 dark:text-gray-400"
+                  className="cursor-pointer text-sm text-muted-foreground"
                 >
                   Recordarme
                 </Label>
               </div>
               <Link
                 href="/forgot-password"
-                className="text-sm text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
                 ¿Olvidaste tu contraseña?
               </Link>
@@ -161,7 +180,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-12 w-full bg-gray-900 font-medium text-white transition-all hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
+              className="h-12 w-full font-medium"
             >
               {isSubmitting ? (
                 <>
@@ -174,15 +193,16 @@ export default function LoginPage() {
             </Button>
 
           </form>
+          </div>
         </div>
       </div>
 
       {/* Footer */}
       <div className="flex items-center justify-center gap-1 pt-8 text-sm">
-        <span className="text-gray-500 dark:text-gray-400">¿No tienes una cuenta?</span>
+        <span className="text-muted-foreground">¿No tienes una cuenta?</span>
         <Link
           href="/register"
-          className="font-medium text-gray-900 underline underline-offset-4 transition-colors hover:text-gray-700 dark:text-gray-100 dark:hover:text-gray-300"
+          className="font-medium text-foreground underline underline-offset-4 transition-colors hover:text-foreground/70"
         >
           Regístrate
         </Link>

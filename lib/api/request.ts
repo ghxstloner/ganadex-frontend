@@ -97,6 +97,9 @@ export async function apiRequest<TResponse>(
       throw error;
     }
 
+    // Check if this is an auth route (login/register)
+    const isAuthRoute = path.startsWith("/auth/login") || path.startsWith("/auth/register");
+
     if (options.toastOnError !== false) {
       if (response.status === 401) {
         toast.error("Sesión expirada. Inicia sesión de nuevo.");
@@ -105,7 +108,8 @@ export async function apiRequest<TResponse>(
       }
     }
 
-    if (response.status === 401) {
+    // Only logout on 401 if not on auth routes (login/register errors shouldn't trigger logout)
+    if (response.status === 401 && !isAuthRoute) {
       logout();
     }
 

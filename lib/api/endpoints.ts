@@ -20,9 +20,13 @@ export const endpoints = {
   animalById: (id: string) => `/animales/${id}`,
   animalPerfil: (id: string) => `/animales/${id}/perfil`,
   animalIdentificaciones: (id: string) => `/animales/${id}/identificaciones`,
+  animalFoto: (id: string) => `/animales/${id}/foto`,
 
   // Identificaciones
   identificacionById: (id: string) => `/identificaciones/${id}`,
+  animalesBuscar: "/animales/buscar",
+  animalesRazas: "/animales/razas",
+  animalesColores: "/animales/colores-pelaje",
 
   // Movimientos
   movimientos: "/movimientos",
