@@ -86,7 +86,7 @@ export function Autocomplete({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-        <Command shouldFilter={false}>
+        <Command shouldFilter={!onSearch}>
           <CommandInput
             placeholder={searchPlaceholder}
             value={searchQuery}

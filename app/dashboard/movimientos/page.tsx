@@ -20,6 +20,7 @@ import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MotionFadeSlide } from "@/components/ui/animate";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Autocomplete } from "@/components/ui/autocomplete";
 import {
   Select,
   SelectContent,
@@ -195,7 +196,8 @@ export default function MovimientosPage() {
     () =>
       animales.map((a) => ({
         value: a.id,
-        label: a.nombre || a.codigo || a.id.slice(0, 8),
+        label: a.nombre || a.codigo || a.identificador_principal || a.id.slice(0, 8),
+        description: a.identificador_principal || a.codigo || undefined,
       })),
     [animales]
   );
@@ -434,18 +436,14 @@ export default function MovimientosPage() {
                 name="id_animal"
                 control={form.control}
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar animal" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {animalOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Autocomplete
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={animalOptions}
+                    placeholder="Seleccionar animal"
+                    searchPlaceholder="Buscar por nombre o identificacion"
+                    emptyText="No se encontraron animales."
+                  />
                 )}
               />
               {form.formState.errors.id_animal && (

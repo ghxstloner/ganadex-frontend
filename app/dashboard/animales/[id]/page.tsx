@@ -121,6 +121,43 @@ function formatDate(date?: string | Date | null) {
     });
 }
 
+function formatAge(animal: AnimalPerfil) {
+    const pluralize = (value: number, singular: string, plural: string) =>
+        value === 1 ? singular : plural;
+
+    if (animal.fecha_nacimiento) {
+        const birthDate = new Date(animal.fecha_nacimiento);
+        if (!isNaN(birthDate.getTime())) {
+            const now = new Date();
+            let days = Math.floor((now.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24));
+            if (days < 0) days = 0;
+
+            if (days < 7) {
+                return `${days} ${pluralize(days, "dia", "dias")}`;
+            }
+
+            if (days < 30) {
+                const weeks = Math.floor(days / 7);
+                const remainingDays = days % 7;
+                const weeksLabel = `${weeks} ${pluralize(weeks, "semana", "semanas")}`;
+                if (remainingDays > 0) {
+                    return `${weeksLabel} ${remainingDays} ${pluralize(remainingDays, "dia", "dias")}`;
+                }
+                return weeksLabel;
+            }
+
+            const months = Math.max(1, Math.floor(days / 30));
+            return `${months} ${pluralize(months, "mes", "meses")}`;
+        }
+    }
+
+    if (animal.edad_meses !== undefined && animal.edad_meses !== null) {
+        return `${animal.edad_meses} ${pluralize(animal.edad_meses, "mes", "meses")}`;
+    }
+
+    return "No disponible";
+}
+
 function EditIdentificacionForm({
     ident,
     tiposIdentificacion,
@@ -1100,7 +1137,7 @@ export default function AnimalPerfilPage() {
                                 <div>
                                     <p className="text-xs font-medium text-muted-foreground">Edad</p>
                                     <p className="text-lg font-semibold text-foreground">
-                                        {animal.edad_meses ? `${animal.edad_meses} meses` : "No disponible"}
+                                        {formatAge(animal)}
                                     </p>
                                 </div>
                             </div>
