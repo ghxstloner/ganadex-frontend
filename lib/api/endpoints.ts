@@ -36,6 +36,7 @@ export const endpoints = {
   // Movimientos
   movimientos: "/movimientos",
   movimientoById: (id: string) => `/movimientos/${id}`,
+  movimientosMotivos: "/movimientos/motivos/list",
 
   // Potreros
   potreros: "/potreros",
@@ -50,6 +51,7 @@ export const endpoints = {
   // Ocupaciones
   ocupaciones: "/ocupaciones",
   ocupacionById: (id: string) => `/ocupaciones/${id}`,
+  ocupacionesResumenActual: "/ocupaciones/resumen-actual",
 
   // Reproducción
   reproduccionEventos: "/reproduccion/eventos",

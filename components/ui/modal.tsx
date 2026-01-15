@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,12 @@ export function Modal({
   onClose,
   className,
 }: ModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (open) {
       // Calcular el ancho de la barra de scroll antes de ocultarla
@@ -46,42 +53,49 @@ export function Modal({
     }
   }, [open]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  const modalContent = (
     <>
       {/* Overlay - cubre toda la pantalla */}
       <div
-        className="fixed inset-0 z-50 bg-foreground/20 backdrop-blur-sm"
+        className="fixed inset-0 z-[100] bg-foreground/20 backdrop-blur-sm"
         onClick={onClose}
       />
-      {/* Modal container - centrado solo en área de contenido */}
-      <div className="fixed inset-y-0 left-0 right-0 lg:left-72 z-50 flex items-center justify-center px-4 pointer-events-none">
+      {/* Modal container - centrado en toda la pantalla */}
+      <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-4 pointer-events-none">
         <div
           className={cn(
-            "relative z-50 w-full max-w-xl rounded-2xl border border-border bg-card shadow-xl pointer-events-auto",
+            "relative z-[100] w-full max-w-2xl max-h-[90vh] rounded-2xl border border-border bg-card shadow-xl pointer-events-auto flex flex-col",
             className
           )}
           onClick={(e) => e.stopPropagation()}
         >
-        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
-          <div>
-            {title && (
-              <h2 className="text-lg font-semibold text-card-foreground">
-                {title}
-              </h2>
-            )}
-            {description && (
-              <p className="text-sm text-muted-foreground">{description}</p>
-            )}
+          {/* Header - fijo */}
+          <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4 flex-shrink-0">
+            <div className="flex-1 min-w-0">
+              {title && (
+                <h2 className="text-lg font-semibold text-card-foreground">
+                  {title}
+                </h2>
+              )}
+              {description && (
+                <p className="text-sm text-muted-foreground mt-1">{description}</p>
+              )}
+            </div>
+            <Button variant="ghost" size="icon-sm" onClick={onClose} className="flex-shrink-0">
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-          <Button variant="ghost" size="icon-sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="px-6 py-5">{children}</div>
+          {/* Content - con scroll */}
+          <div className="px-6 py-5 overflow-y-auto flex-1 min-h-0">
+            {children}
+          </div>
         </div>
       </div>
     </>
   );
+
+  // Renderizar en un portal fuera del árbol DOM para evitar problemas de z-index y overflow
+  return createPortal(modalContent, document.body);
 }

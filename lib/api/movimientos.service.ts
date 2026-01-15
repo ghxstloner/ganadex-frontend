@@ -63,3 +63,13 @@ export async function deleteMovimiento(id: string): Promise<void> {
         method: "DELETE",
     });
 }
+
+export type MotivoMovimiento = {
+    id: string;
+    codigo: string;
+    nombre: string;
+};
+
+export async function fetchMotivosMovimiento(): Promise<MotivoMovimiento[]> {
+    return apiRequest<MotivoMovimiento[]>(endpoints.movimientosMotivos);
+}

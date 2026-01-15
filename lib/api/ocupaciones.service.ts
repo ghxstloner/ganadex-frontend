@@ -3,18 +3,24 @@ import { endpoints } from "@/lib/api/endpoints";
 import type {
     Ocupacion,
     CreateOcupacionDTO,
-    UpdateOcupacionDTO,
+    CloseOcupacionDTO,
+    OcupacionResumen,
 } from "@/lib/types/business";
 
 export type OcupacionesQuery = {
-    potrero_id?: string;
-    lote_id?: string;
-    animal_id?: string;
-    fecha_desde?: string;
-    fecha_hasta?: string;
-    activa?: boolean;
+    id_finca?: string;
+    id_potrero?: string;
+    id_lote?: string;
+    activo?: boolean;
+    desde?: string;
+    hasta?: string;
     page?: number;
     limit?: number;
+};
+
+export type OcupacionResumenQuery = {
+    id_finca?: string;
+    search?: string;
 };
 
 function buildQueryString(query: Record<string, unknown>): string {
@@ -46,18 +52,19 @@ export async function createOcupacion(data: CreateOcupacionDTO): Promise<Ocupaci
     });
 }
 
-export async function updateOcupacion(
+export async function cerrarOcupacion(
     id: string,
-    data: UpdateOcupacionDTO
+    data: CloseOcupacionDTO
 ): Promise<Ocupacion> {
-    return apiRequest<Ocupacion>(endpoints.ocupacionById(id), {
+    return apiRequest<Ocupacion>(`${endpoints.ocupaciones}/${id}/cerrar`, {
         method: "PATCH",
         body: data,
     });
 }
 
-export async function deleteOcupacion(id: string): Promise<void> {
-    return apiRequest<void>(endpoints.ocupacionById(id), {
-        method: "DELETE",
-    });
+export async function fetchResumenActual(
+    query: OcupacionResumenQuery = {}
+): Promise<OcupacionResumen> {
+    const qs = buildQueryString(query);
+    return apiRequest<OcupacionResumen>(`${endpoints.ocupaciones}/resumen-actual${qs}`);
 }

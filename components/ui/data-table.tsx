@@ -16,7 +16,7 @@ export type DataTableColumn<T> = {
 export type DataTableProps<T> = {
     columns: DataTableColumn<T>[];
     data: T[];
-    keyExtractor: (item: T) => string;
+    keyExtractor?: (item: T, index: number) => string;
     loading?: boolean;
     error?: boolean;
     onRetry?: () => void;
@@ -53,6 +53,17 @@ export function DataTable<T>({
     emptyState,
     className,
 }: DataTableProps<T>) {
+    // Default keyExtractor: use item.id if available, otherwise use index
+    const getKey = keyExtractor || ((item: T, index: number) => {
+        if (item && typeof item === 'object' && 'id' in item) {
+            const id = (item as any).id;
+            if (id !== null && id !== undefined) {
+                return String(id);
+            }
+        }
+        return `row-${index}`;
+    });
+
     return (
         <div
             className={cn(
@@ -100,7 +111,7 @@ export function DataTable<T>({
                         ) : (
                             data.map((item, index) => (
                                 <tr
-                                    key={keyExtractor(item)}
+                                    key={getKey(item, index)}
                                     className="transition-colors hover:bg-muted/40"
                                 >
                                     {columns.map((col) => (

@@ -545,14 +545,16 @@ export default function DashboardLayout({
                       : [];
 
                     // Verificar si algún hijo está activo
-                    const hasActiveChild = visibleChildren.some((child) => {
-                      if (!child.href) return false;
-                      return (
-                        pathname === child.href ||
-                        (child.href !== "/dashboard" &&
-                          pathname.startsWith(child.href))
-                      );
-                    });
+                    // Primero encontrar el hijo más específico que coincida
+                    const matchingChildren = visibleChildren
+                      .filter((child) => child.href)
+                      .filter((child) => {
+                        const href = child.href!;
+                        return pathname === href || pathname.startsWith(href + "/");
+                      })
+                      .sort((a, b) => (b.href?.length || 0) - (a.href?.length || 0)); // Ordenar por longitud descendente
+                    
+                    const hasActiveChild = matchingChildren.length > 0;
 
                     // Verificar si el item principal está activo (si tiene href)
                     const isActive =
@@ -600,10 +602,17 @@ export default function DashboardLayout({
                                   .filter((child) => child.href)
                                   .map((child) => {
                                     const href = child.href!;
-                                    const isChildActive =
-                                      pathname === href ||
-                                      (href !== "/dashboard" &&
-                                        pathname.startsWith(href));
+                                    // Encontrar el hijo más específico que coincida
+                                    const matchingChildren = visibleChildren
+                                      .filter((c) => c.href)
+                                      .filter((c) => {
+                                        const h = c.href!;
+                                        return pathname === h || pathname.startsWith(h + "/");
+                                      })
+                                      .sort((a, b) => (b.href?.length || 0) - (a.href?.length || 0));
+                                    
+                                    // Solo activar el hijo más específico (el primero después de ordenar)
+                                    const isChildActive = matchingChildren.length > 0 && matchingChildren[0].href === href;
                                     const ChildIcon = child.icon;
                                     return (
                                       <Link

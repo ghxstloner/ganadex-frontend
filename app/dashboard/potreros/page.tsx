@@ -49,7 +49,7 @@ import {
   type EstadoPotrero,
 } from "@/lib/api/potreros.service";
 import { fetchLotes, createLote, deleteLote } from "@/lib/api/lotes.service";
-import { fetchOcupaciones, createOcupacion, deleteOcupacion } from "@/lib/api/ocupaciones.service";
+import { fetchOcupaciones, createOcupacion, cerrarOcupacion } from "@/lib/api/ocupaciones.service";
 import { fetchFincas } from "@/lib/api/fincas.service";
 import type { Potrero, Lote, Ocupacion, Finca } from "@/lib/types/business";
 import { getStoredSession } from "@/lib/auth/storage";
@@ -69,10 +69,10 @@ const potreroSchema = z.object({
 });
 
 const loteSchema = z.object({
+  id_finca: z.string().min(1, "Selecciona una finca"),
   nombre: z.string().min(1, "Ingresa el nombre"),
-  finca_id: z.string().optional(),
   descripcion: z.string().optional(),
-  proposito: z.string().optional(),
+  activo: z.boolean().optional().default(true),
 });
 
 const ocupacionSchema = z.object({
@@ -667,7 +667,7 @@ function LotesTab({ fincas }: { fincas: Finca[] }) {
   }, [loadData]);
 
   const openCreate = () => {
-    form.reset({ nombre: "" });
+    form.reset({ id_finca: "", nombre: "", descripcion: "", activo: true });
     setCreateOpen(true);
   };
 
@@ -679,11 +679,17 @@ function LotesTab({ fincas }: { fincas: Finca[] }) {
   const handleCreate = async (values: LoteForm) => {
     setSubmitting(true);
     try {
-      const created = await createLote(values);
+      const created = await createLote({
+        id_finca: values.id_finca,
+        nombre: values.nombre,
+        descripcion: values.descripcion || undefined,
+        activo: values.activo ?? true,
+      });
       setLotes((prev) => [created, ...prev]);
       toast.success("Lote creado");
       setCreateOpen(false);
-    } catch {
+    } catch (err: any) {
+      toast.error(err?.message || "Error al crear lote");
     } finally {
       setSubmitting(false);
     }
@@ -706,8 +712,7 @@ function LotesTab({ fincas }: { fincas: Finca[] }) {
   const columns: DataTableColumn<Lote>[] = [
     { key: "nombre", header: "Nombre", render: (l) => <span className="font-medium">{l.nombre}</span> },
     { key: "finca", header: "Finca", render: (l) => l.finca_nombre ?? "—" },
-    { key: "proposito", header: "Propósito", render: (l) => l.proposito ?? "—" },
-    { key: "cantidad", header: "Animales", render: (l) => l.cantidad_animales ?? "—" },
+    { key: "descripcion", header: "Descripción", render: (l) => l.descripcion ?? "—" },
     {
       key: "actions",
       header: "",
@@ -753,20 +758,16 @@ function LotesTab({ fincas }: { fincas: Finca[] }) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Finca</label>
+            <label className="text-sm font-medium">Finca *</label>
             <Controller
-              name="finca_id"
+              name="id_finca"
               control={form.control}
               render={({ field }) => (
-                <Select
-                  value={field.value || "__none__"}
-                  onValueChange={(value) => field.onChange(value === "__none__" ? undefined : value)}
-                >
+                <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Seleccionar" />
+                    <SelectValue placeholder="Seleccionar finca" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">Ninguna</SelectItem>
                     {fincas.map((f) => (
                       <SelectItem key={f.id} value={f.id}>
                         {f.nombre}
@@ -776,11 +777,20 @@ function LotesTab({ fincas }: { fincas: Finca[] }) {
                 </Select>
               )}
             />
+            {form.formState.errors.id_finca && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.id_finca.message}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Propósito</label>
-            <Input {...form.register("proposito")} placeholder="Ej: Cría, Engorde" />
+            <label className="text-sm font-medium">Descripción</label>
+            <textarea
+              {...form.register("descripcion")}
+              className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+              placeholder="Descripción del lote..."
+            />
           </div>
 
           <div className="flex justify-end gap-2">
@@ -879,11 +889,16 @@ function OcupacionesTab({ potreros, lotes }: { potreros: Potrero[]; lotes: Lote[
     if (!selected) return;
     setSubmitting(true);
     try {
-      await deleteOcupacion(selected.id);
+      // Cerrar ocupación en lugar de eliminar
+      await cerrarOcupacion(selected.id, {
+        fecha_fin: new Date().toISOString().split("T")[0],
+      });
       setOcupaciones((prev) => prev.filter((o) => o.id !== selected.id));
-      toast.success("Ocupación eliminada");
+      toast.success("Ocupación cerrada");
       setDeleteOpen(false);
-    } catch {
+      await loadData();
+    } catch (err: any) {
+      toast.error(err?.message || "Error al cerrar ocupación");
     } finally {
       setSubmitting(false);
     }

@@ -149,38 +149,34 @@ export type UpdateAnimalDTO = Partial<CreateAnimalDTO>;
 
 export type Movimiento = {
     id: string;
-    animal_id: string;
+    empresa_id?: string;
+    id_finca: string;
+    id_animal: string;
     animal_nombre?: string | null;
-    animal_codigo?: string | null;
-    tipo: string;
-    motivo?: string | null;
-    fecha: string;
-    origen_lote_id?: string | null;
-    origen_lote_nombre?: string | null;
-    origen_potrero_id?: string | null;
-    origen_potrero_nombre?: string | null;
-    destino_lote_id?: string | null;
-    destino_lote_nombre?: string | null;
-    destino_potrero_id?: string | null;
-    destino_potrero_nombre?: string | null;
-    peso?: number | null;
-    valor?: number | null;
-    notas?: string | null;
-    created_at?: string;
+    fecha_hora: string | Date;
+    lote_origen_id?: string | null;
+    lote_origen_nombre?: string | null;
+    lote_destino_id?: string | null;
+    lote_destino_nombre?: string | null;
+    potrero_origen_id?: string | null;
+    potrero_origen_nombre?: string | null;
+    potrero_destino_id?: string | null;
+    potrero_destino_nombre?: string | null;
+    id_motivo?: string | null;
+    motivo_nombre?: string | null;
+    observaciones?: string | null;
 };
 
 export type CreateMovimientoDTO = {
-    animal_id: string;
-    tipo: string;
-    motivo?: string;
-    fecha: string;
-    origen_lote_id?: string;
-    origen_potrero_id?: string;
-    destino_lote_id?: string;
-    destino_potrero_id?: string;
-    peso?: number;
-    valor?: number;
-    notas?: string;
+    id_finca: string;
+    fecha_hora: string; // ISO 8601 format
+    id_animal: string;
+    lote_origen_id?: string;
+    lote_destino_id?: string;
+    potrero_origen_id?: string;
+    potrero_destino_id?: string;
+    id_motivo_movimiento?: string;
+    observaciones?: string;
 };
 
 export type UpdateMovimientoDTO = Partial<CreateMovimientoDTO>;
@@ -225,23 +221,19 @@ export type UpdatePotreroDTO = Partial<CreatePotreroDTO>;
 
 export type Lote = {
     id: string;
-    nombre: string;
-    finca_id?: string | null;
+    empresa_id?: string;
+    id_finca: string;
     finca_nombre?: string | null;
+    nombre: string;
     descripcion?: string | null;
-    proposito?: string | null;
-    cantidad_animales?: number | null;
-    estado: "activo" | "inactivo";
-    created_at?: string;
-    updated_at?: string;
+    activo: boolean;
 };
 
 export type CreateLoteDTO = {
+    id_finca: string;
     nombre: string;
-    finca_id?: string;
     descripcion?: string;
-    proposito?: string;
-    estado?: string;
+    activo?: boolean;
 };
 
 export type UpdateLoteDTO = Partial<CreateLoteDTO>;
@@ -252,30 +244,58 @@ export type UpdateLoteDTO = Partial<CreateLoteDTO>;
 
 export type Ocupacion = {
     id: string;
-    potrero_id: string;
+    empresa_id?: string;
+    id_finca: string;
+    finca_nombre?: string | null;
+    id_potrero: string;
     potrero_nombre?: string | null;
-    lote_id?: string | null;
+    id_lote: string;
     lote_nombre?: string | null;
-    animal_id?: string | null;
-    animal_nombre?: string | null;
-    fecha_inicio: string;
-    fecha_fin?: string | null;
-    cantidad_animales?: number | null;
+    fecha_inicio: string | Date;
+    fecha_fin?: string | Date | null;
+    activo?: boolean;
     notas?: string | null;
-    created_at?: string;
 };
 
 export type CreateOcupacionDTO = {
-    potrero_id: string;
-    lote_id?: string;
-    animal_id?: string;
+    id_finca: string;
+    id_potrero: string;
+    id_lote: string;
     fecha_inicio: string;
-    fecha_fin?: string;
-    cantidad_animales?: number;
     notas?: string;
 };
 
-export type UpdateOcupacionDTO = Partial<CreateOcupacionDTO>;
+export type CloseOcupacionDTO = {
+    fecha_fin: string;
+    notas?: string;
+};
+
+export type OcupacionResumenPotrero = {
+    potrero_id: string;
+    potrero_nombre: string;
+    finca_id: string;
+    finca_nombre: string;
+    lote_id: string;
+    lote_nombre: string;
+    fecha_inicio: string | Date;
+    dias: number;
+};
+
+export type OcupacionResumenLote = {
+    lote_id: string;
+    lote_nombre: string;
+    finca_id: string;
+    finca_nombre: string;
+    potrero_id: string;
+    potrero_nombre: string;
+    fecha_inicio: string | Date;
+    dias: number;
+};
+
+export type OcupacionResumen = {
+    porPotrero: OcupacionResumenPotrero[];
+    porLote: OcupacionResumenLote[];
+};
 
 // ====================
 // Reproducción

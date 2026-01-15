@@ -112,7 +112,7 @@ function getEstadoBadgeVariant(estado: string) {
     }
 }
 
-function formatDate(date?: string | null) {
+function formatDate(date?: string | Date | null) {
     if (!date) return "—";
     return new Date(date).toLocaleDateString("es-CO", {
         year: "numeric",
@@ -1502,24 +1502,33 @@ export default function AnimalPerfilPage() {
                 <DataTable
                     columns={[
                         {
-                            key: "fecha",
+                            key: "fecha_hora",
                             header: "Fecha",
-                            render: (item) => formatDate(item.fecha),
+                            render: (item) => formatDate(item.fecha_hora),
                         },
                         {
                             key: "tipo",
                             header: "Tipo",
-                            render: (item) => <Badge variant="muted">{item.tipo}</Badge>,
+                            render: (item) => {
+                                const tipo =
+                                    item.potrero_destino_id || item.potrero_destino_nombre
+                                        ? "Potrero"
+                                        : item.lote_destino_id || item.lote_destino_nombre
+                                          ? "Lote"
+                                          : "—";
+                                return <Badge variant="muted">{tipo}</Badge>;
+                            },
                         },
                         {
                             key: "destino",
                             header: "Destino",
-                            render: (item) => item.destino_potrero_nombre ?? item.destino_lote_nombre ?? "—",
+                            render: (item) =>
+                                item.potrero_destino_nombre ?? item.lote_destino_nombre ?? "—",
                         },
                         {
                             key: "motivo",
                             header: "Motivo",
-                            render: (item) => item.motivo ?? "—",
+                            render: (item) => item.motivo_nombre ?? item.observaciones ?? "—",
                         },
                     ]}
                     data={animal.ultimos_movimientos ?? []}
