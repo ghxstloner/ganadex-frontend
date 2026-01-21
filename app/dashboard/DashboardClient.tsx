@@ -8,12 +8,10 @@ import { getStoredSession, logout } from "@/lib/auth/auth.service";
 import type { GanadexSession } from "@/lib/types/auth";
 
 export default function DashboardClient() {
-  const [session, setSession] = useState<GanadexSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [session] = useState<GanadexSession | null>(() => getStoredSession());
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const stored = getStoredSession();
-    setSession(stored);
     setLoading(false);
   }, []);
 

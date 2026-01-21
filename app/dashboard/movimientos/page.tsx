@@ -4,8 +4,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
+import {
+  FileDown,
+  FileUp,
+  Loader2,
+  Plus,
+  Trash2,
+  UploadCloud,
+} from "lucide-react";
 import { toast } from "sonner";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,12 +22,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { Pagination } from "@/components/ui/pagination";
-import { FiltersBar, SelectFilter } from "@/components/ui/filters-bar";
+import { FiltersBar } from "@/components/ui/filters-bar";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
+
+
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MotionFadeSlide } from "@/components/ui/animate";
-import { DatePicker } from "@/components/ui/date-picker";
+
 import { Autocomplete } from "@/components/ui/autocomplete";
 import {
   Select,
@@ -35,14 +44,27 @@ import {
   createMovimiento,
   deleteMovimiento,
   fetchMotivosMovimiento,
+  exportMovimientosExcel,
+  downloadMovimientosTemplate,
+  importMovimientosExcel,
+  type ImportMovimientosResult,
   type MovimientosQuery,
   type MotivoMovimiento,
 } from "@/lib/api/movimientos.service";
+
 import { fetchAnimales } from "@/lib/api/animales.service";
 import { fetchFincas } from "@/lib/api/fincas.service";
 import { fetchLotes } from "@/lib/api/lotes.service";
 import { fetchPotreros } from "@/lib/api/potreros.service";
-import type { Movimiento, CreateMovimientoDTO, Animal, Finca, Lote, Potrero } from "@/lib/types/business";
+import type {
+  Movimiento,
+  CreateMovimientoDTO,
+  Animal,
+  Finca,
+  Lote,
+  Potrero,
+} from "@/lib/types/business";
+
 import { getStoredSession } from "@/lib/auth/storage";
 import { hasPermission } from "@/lib/auth/permissions";
 
@@ -90,12 +112,22 @@ export default function MovimientosPage() {
 
   // Filters
   const [search, setSearch] = useState("");
+  const [dragActive, setDragActive] = useState(false);
+
 
   // Modal states
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [confirmImportOpen, setConfirmImportOpen] = useState(false);
   const [selectedMovimiento, setSelectedMovimiento] = useState<Movimiento | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importResult, setImportResult] = useState<ImportMovimientosResult | null>(null);
+  const [importErrors, setImportErrors] = useState<{ row: number; message: string }[]>([]);
+
 
   const form = useForm<MovimientoForm>({
     resolver: zodResolver(movimientoSchema),
@@ -241,12 +273,14 @@ export default function MovimientosPage() {
       toast.success("Movimiento registrado");
       setCreateOpen(false);
       await loadMovimientos();
-    } catch (err: any) {
-      toast.error(err?.message || "Error al registrar movimiento");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al registrar movimiento";
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
   };
+
 
   const handleDelete = async () => {
     if (!selectedMovimiento) return;
@@ -267,6 +301,87 @@ export default function MovimientosPage() {
     setSearch("");
     setPage(1);
   };
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      await exportMovimientosExcel();
+      toast.success("Exportacion iniciada");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "No se pudo exportar a Excel";
+      toast.error(message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      await downloadMovimientosTemplate();
+      toast.success("Plantilla descargada");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "No se pudo descargar la plantilla";
+      toast.error(message);
+    }
+  };
+
+  const resetImportState = () => {
+    setImportFile(null);
+    setImportResult(null);
+    setImportErrors([]);
+  };
+
+  const handleImportFile = (file: File | null) => {
+    resetImportState();
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".xlsx")) {
+      toast.error("Solo se permiten archivos .xlsx");
+      return;
+    }
+    setImportFile(file);
+    setConfirmImportOpen(true);
+  };
+
+  const handleFileDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragActive(false);
+    const file = event.dataTransfer.files?.[0];
+    if (file) {
+      handleImportFile(file);
+    }
+  };
+
+  const handleFileDrag = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.type === "dragenter" || event.type === "dragover") {
+      setDragActive(true);
+    } else if (event.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const confirmImport = async () => {
+    if (!importFile) return;
+    setImporting(true);
+    setImportResult(null);
+    setImportErrors([]);
+    try {
+      const result = await importMovimientosExcel(importFile);
+      setImportResult(result);
+      setImportErrors(result.errors ?? []);
+      toast.success("Importacion completada");
+      await loadMovimientos();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "No se pudo importar el archivo";
+      toast.error(message);
+    } finally {
+      setImporting(false);
+      setConfirmImportOpen(false);
+    }
+  };
+
 
   const hasFilters = search;
 
@@ -320,19 +435,18 @@ export default function MovimientosPage() {
       className: "text-right",
       render: (mov) =>
         canDelete ? (
-          <DropdownMenu
-            items={[
-              {
-                label: "Eliminar",
-                icon: <Trash2 className="h-4 w-4" />,
-                onClick: () => openDelete(mov),
-                variant: "danger",
-              },
-            ]}
-          />
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => openDelete(mov)}
+            aria-label="Eliminar movimiento"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         ) : null,
     },
   ];
+
 
   if (!canView) {
     return <NoPermission />;
@@ -346,14 +460,37 @@ export default function MovimientosPage() {
           title="Movimientos"
           description="Registra y consulta los movimientos de animales."
           actions={
-            canCreate ? (
-              <Button onClick={openCreate}>
-                <Plus className="h-4 w-4" />
-                Nuevo movimiento
+            <>
+              <Button
+                variant="secondary"
+                onClick={handleExportExcel}
+                disabled={exporting}
+              >
+                {exporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="h-4 w-4" />
+                )}
+                Exportar a Excel
               </Button>
-            ) : undefined
+              <Button variant="outline" onClick={handleDownloadTemplate}>
+                <FileUp className="h-4 w-4" />
+                Descargar plantilla
+              </Button>
+              <Button variant="outline" onClick={() => setImportOpen(true)}>
+                <UploadCloud className="h-4 w-4" />
+                Importar Excel
+              </Button>
+              {canCreate && (
+                <Button onClick={openCreate}>
+                  <Plus className="h-4 w-4" />
+                  Nuevo movimiento
+                </Button>
+              )}
+            </>
           }
         />
+
 
         <Card className="border-border bg-card">
           <CardContent className="space-y-4 p-5">
@@ -677,6 +814,123 @@ export default function MovimientosPage() {
           </form>
         </Modal>
 
+        <Modal
+          open={importOpen}
+          onClose={() => {
+            setImportOpen(false);
+            resetImportState();
+          }}
+          title="Importar movimientos"
+          description="Este proceso movera animales a nuevos lotes y cambiara su ubicacion actual."
+        >
+          <div className="space-y-4">
+            <div
+              className={`rounded-lg border border-dashed p-4 transition ${
+                dragActive
+                  ? "border-primary bg-primary/10"
+                  : "border-border bg-muted/40"
+              }`}
+              onDrop={handleFileDrop}
+              onDragEnter={handleFileDrag}
+              onDragOver={handleFileDrag}
+              onDragLeave={handleFileDrag}
+            >
+              <label className="flex cursor-pointer flex-col items-center gap-2 rounded-md border border-transparent p-4 text-center transition hover:border-primary/40">
+                <UploadCloud className="h-6 w-6 text-muted-foreground" />
+                <span className="text-sm font-medium">
+                  Arrastra un archivo .xlsx o haz clic para seleccionar
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Solo se aceptan archivos Excel (.xlsx)
+                </span>
+                <input
+                  type="file"
+                  accept=".xlsx"
+                  className="hidden"
+                  onChange={(event) =>
+                    handleImportFile(event.target.files?.[0] ?? null)
+                  }
+                />
+              </label>
+            </div>
+
+            {importFile && (
+              <div className="rounded-md border border-border bg-background p-3 text-sm">
+                <p className="font-medium">Archivo seleccionado</p>
+                <p className="text-muted-foreground">{importFile.name}</p>
+              </div>
+            )}
+
+            {importResult && (
+              <div className="grid gap-3 rounded-md border border-border bg-background p-3 text-sm sm:grid-cols-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Filas procesadas</p>
+                  <p className="text-lg font-semibold">
+                    {importResult.processed}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Exitosas</p>
+                  <p className="text-lg font-semibold text-emerald-600">
+                    {importResult.created}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Fallidas</p>
+                  <p className="text-lg font-semibold text-destructive">
+                    {importResult.errors.length}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {importErrors.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Errores por fila</p>
+                <div className="max-h-48 space-y-2 overflow-auto rounded-md border border-border bg-background p-3 text-xs">
+                  {importErrors.map((err) => (
+                    <div key={`${err.row}-${err.message}`} className="flex gap-2">
+                      <Badge variant="outline">Fila {err.row}</Badge>
+                      <span className="text-muted-foreground">{err.message}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <p className="font-medium">Antes de importar</p>
+              <p className="text-xs">
+                Este archivo cambiara la ubicacion actual de los animales
+                incluidos. Asegurate de usar la plantilla oficial.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setImportOpen(false);
+                  resetImportState();
+                }}
+              >
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        <ConfirmDialog
+          open={confirmImportOpen}
+          onClose={() => setConfirmImportOpen(false)}
+          onConfirm={confirmImport}
+          title="Confirmar importacion"
+          description="Esto cambiara la ubicacion actual de los animales. Deseas continuar?"
+          confirmLabel={importing ? "Importando..." : "Importar"}
+          loading={importing}
+        />
+
         <ConfirmDialog
           open={deleteOpen}
           onClose={() => setDeleteOpen(false)}
@@ -690,3 +944,4 @@ export default function MovimientosPage() {
     </MotionFadeSlide>
   );
 }
+

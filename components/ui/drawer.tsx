@@ -2,6 +2,12 @@
 
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 type DrawerProps = {
@@ -21,39 +27,51 @@ export function Drawer({
   onClose,
   className,
 }: DrawerProps) {
-  if (!open) return null;
+  const hasHeading = Boolean(title || description);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div
-        className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <div
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent
+        showCloseButton={false}
+        aria-label={!hasHeading ? "Panel" : undefined}
         className={cn(
-          "relative h-full w-full max-w-lg border-l border-border bg-card shadow-2xl",
+          "ml-auto h-full w-full max-w-lg gap-0 overflow-hidden rounded-none border-l border-border p-0 shadow-2xl",
           className
         )}
       >
         <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
           <div>
             {title && (
-              <h2 className="text-lg font-semibold text-card-foreground">
+              <DialogTitle className="text-lg font-semibold text-card-foreground">
                 {title}
-              </h2>
+              </DialogTitle>
             )}
             {description && (
-              <p className="text-sm text-muted-foreground">{description}</p>
+              <DialogDescription className="text-sm text-muted-foreground">
+                {description}
+              </DialogDescription>
             )}
           </div>
-          <Button variant="ghost" size="icon-sm" onClick={onClose}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose}
+            aria-label="Cerrar panel"
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>
         <div className="flex h-[calc(100%-64px)] flex-col px-6 py-5">
           {children}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

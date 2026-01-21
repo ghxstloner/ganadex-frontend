@@ -20,16 +20,21 @@ function getBaseUrl() {
   return baseUrl.replace(/\/$/, "");
 }
 
-export function resolveApiErrorMessage(body: any, status: number) {
+export function resolveApiErrorMessage(body: unknown, status: number) {
+  const payload = body as {
+    message?: string;
+    error?: string;
+    errors?: string[] | string;
+  } | null;
   const message =
-    typeof body?.message === "string"
-      ? body.message
-      : typeof body?.error === "string"
-        ? body.error
-        : Array.isArray(body?.errors)
-          ? body.errors.join(", ")
-          : typeof body?.errors === "string"
-            ? body.errors
+    typeof payload?.message === "string"
+      ? payload.message
+      : typeof payload?.error === "string"
+        ? payload.error
+        : Array.isArray(payload?.errors)
+          ? payload.errors.join(", ")
+          : typeof payload?.errors === "string"
+            ? payload.errors
             : undefined;
 
   return message || defaultMessageByStatus[status] || "Error inesperado";

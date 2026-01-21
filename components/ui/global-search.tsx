@@ -34,6 +34,7 @@ export function GlobalSearch({ className }: GlobalSearchProps) {
           size="sm"
           onClick={() => setIsExpanded(true)}
           className="h-9 w-full max-w-sm justify-start gap-2 text-muted-foreground hover:text-foreground"
+          aria-label="Abrir búsqueda global"
         >
           <Search className="h-4 w-4" />
           <span className="hidden sm:inline">Buscar animales, movimientos...</span>
@@ -51,6 +52,7 @@ export function GlobalSearch({ className }: GlobalSearchProps) {
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
               className="h-9 w-full pl-9 pr-9"
+              aria-label="Buscar en el panel"
               autoFocus
               onBlur={() => {
                 if (!query) setIsExpanded(false);
@@ -67,6 +69,7 @@ export function GlobalSearch({ className }: GlobalSearchProps) {
                 size="icon"
                 onClick={handleClear}
                 className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+                aria-label="Limpiar búsqueda"
               >
                 <X className="h-3.5 w-3.5" />
               </Button>

@@ -1,23 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import {
+  Eye,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
+
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
-import { Card, CardContent } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
-import { Pagination } from "@/components/ui/pagination";
-import { Badge } from "@/components/ui/badge";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { MotionFadeSlide } from "@/components/ui/animate";
 import {
   Select,
   SelectContent,
@@ -25,15 +25,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { Pagination } from "@/components/ui/pagination";
+import { FiltersBar, SelectFilter } from "@/components/ui/filters-bar";
+import { Badge } from "@/components/ui/badge";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { MotionFadeSlide } from "@/components/ui/animate";
 import NoPermission from "@/components/no-permission";
+
 
 import {
   fetchLotes,
   createLote,
   deleteLote,
 } from "@/lib/api/lotes.service";
+
 import { fetchFincas } from "@/lib/api/fincas.service";
 import type { Lote, Finca } from "@/lib/types/business";
+
 import { getStoredSession } from "@/lib/auth/storage";
 import { hasPermission } from "@/lib/auth/permissions";
 
@@ -47,10 +59,13 @@ const loteSchema = z.object({
 type LoteForm = z.infer<typeof loteSchema>;
 
 export default function LotesPage() {
+  const router = useRouter();
   const session = getStoredSession();
-  const canView = hasPermission(session, "animales.view");
-  const canCreate = hasPermission(session, "animales.create");
-  const canDelete = hasPermission(session, "animales.delete");
+  const canView = hasPermission(session, "lotes.view");
+  const canCreate = hasPermission(session, "lotes.create");
+  const canEdit = hasPermission(session, "lotes.edit");
+  const canDelete = hasPermission(session, "lotes.delete");
+
 
   const [lotes, setLotes] = useState<Lote[]>([]);
   const [fincas, setFincas] = useState<Finca[]>([]);
@@ -58,10 +73,17 @@ export default function LotesPage() {
   const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  
+  // Filtros
+  const [search, setSearch] = useState("");
+  const [fincaFilter, setFincaFilter] = useState("");
+  const [estadoFilter, setEstadoFilter] = useState("");
+  
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selected, setSelected] = useState<Lote | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
 
   const form = useForm<LoteForm>({
     resolver: zodResolver(loteSchema),
@@ -77,7 +99,13 @@ export default function LotesPage() {
     setLoading(true);
     setError(false);
     try {
-      const res = await fetchLotes({ page, limit: 10 });
+      const res = await fetchLotes({ 
+        page, 
+        limit: 10,
+        q: search || undefined,
+        finca_id: fincaFilter || undefined,
+        activo: estadoFilter === "activo" ? true : estadoFilter === "inactivo" ? false : undefined,
+      });
       setLotes(res.items ?? []);
       setTotalPages(res.meta?.totalPages ?? 1);
     } catch {
@@ -85,7 +113,7 @@ export default function LotesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, search, fincaFilter, estadoFilter]);
 
   const loadFincas = useCallback(async () => {
     try {
@@ -96,10 +124,32 @@ export default function LotesPage() {
     }
   }, []);
 
+
   useEffect(() => {
     loadData();
     loadFincas();
+    // NO cargamos todos los animales al inicio para evitar peticiones innecesarias
+    // Se cargan solo cuando se abre el modal de asignar
   }, [loadData, loadFincas]);
+
+  const fincaOptions = useMemo(
+    () => fincas.map((f) => ({ value: f.id, label: f.nombre })),
+    [fincas]
+  );
+
+  const estadoOptions = [
+    { value: "activo", label: "Activo" },
+    { value: "inactivo", label: "Inactivo" },
+  ];
+
+  const clearFilters = () => {
+    setSearch("");
+    setFincaFilter("");
+    setEstadoFilter("");
+    setPage(1);
+  };
+
+  const hasFilters = search || fincaFilter || estadoFilter;
 
   const openCreate = () => {
     form.reset({ id_finca: "", nombre: "", descripcion: "", activo: true });
@@ -111,24 +161,28 @@ export default function LotesPage() {
     setDeleteOpen(true);
   };
 
+
   const handleCreate = async (values: LoteForm) => {
     setSubmitting(true);
     try {
-      const created = await createLote({
+      await createLote({
         id_finca: values.id_finca,
         nombre: values.nombre,
         descripcion: values.descripcion || undefined,
         activo: values.activo,
       });
       toast.success("Lote creado");
+
       setCreateOpen(false);
       await loadData();
-    } catch (err: any) {
-      toast.error(err?.message || "Error al crear lote");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al crear lote";
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
   };
+
 
   const handleDelete = async () => {
     if (!selected) return;
@@ -138,12 +192,14 @@ export default function LotesPage() {
       toast.success("Lote eliminado");
       setDeleteOpen(false);
       await loadData();
-    } catch (err: any) {
-      toast.error(err?.message || "Error al eliminar lote");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al eliminar lote";
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
   };
+
 
   const columns: DataTableColumn<Lote>[] = [
     {
@@ -175,21 +231,42 @@ export default function LotesPage() {
       key: "actions",
       header: "",
       className: "text-right",
-      render: (l) =>
-        canDelete ? (
-          <DropdownMenu
-            items={[
-              {
-                label: "Eliminar",
-                icon: <Trash2 className="h-4 w-4" />,
-                onClick: () => openDelete(l),
-                variant: "danger" as const,
-              },
-            ]}
-          />
-        ) : null,
+      render: (l) => (
+        <DropdownMenu
+          items={[
+            {
+              label: "Ver detalles",
+              icon: <Eye className="h-4 w-4" />,
+              onClick: () => router.push(`/dashboard/lotes/${l.id}`),
+            },
+            ...(canEdit
+              ? [
+                  {
+                    label: "Editar",
+                    icon: <Pencil className="h-4 w-4" />,
+                    onClick: () => router.push(`/dashboard/lotes/${l.id}?mode=edit`),
+                  },
+                ]
+              : []),
+            ...(canDelete
+              ? [
+                  {
+                    type: "separator" as const,
+                  },
+                  {
+                    label: "Eliminar",
+                    icon: <Trash2 className="h-4 w-4" />,
+                    onClick: () => openDelete(l),
+                    variant: "danger" as const,
+                  },
+                ]
+              : []),
+          ]}
+        />
+      ),
     },
   ];
+
 
   if (!canView) return <NoPermission />;
 
@@ -197,39 +274,72 @@ export default function LotesPage() {
     <MotionFadeSlide>
       <div className="space-y-6">
         <PageHeader
+          subtitle="Gestión"
           title="Lotes"
-          description="Gestiona los lotes de animales"
+          description="Gestiona los lotes de animales de tu empresa y asigna animales de forma masiva."
+          actions={
+            canCreate ? (
+              <Button onClick={openCreate}>
+                <Plus className="h-4 w-4" />
+                Nuevo lote
+              </Button>
+            ) : undefined
+          }
         />
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="flex justify-end">
-                {canCreate && (
-                  <Button onClick={openCreate}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nuevo lote
-                  </Button>
-                )}
-              </div>
-
-              <div className="rounded-md border overflow-hidden">
-                <DataTable
-                  columns={columns}
-                  data={lotes}
-                  keyExtractor={(l) => l.id}
-                  loading={loading}
-                  error={error}
-                  onRetry={loadData}
-                  emptyState={{ title: "Sin lotes" }}
-                />
-              </div>
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                onPageChange={setPage}
+        <Card className="border-border bg-card">
+          <CardContent className="space-y-4 p-5">
+            <FiltersBar
+              search={search}
+              onSearchChange={(v) => {
+                setSearch(v);
+                setPage(1);
+              }}
+              searchPlaceholder="Buscar por nombre o descripción..."
+              showClear={!!hasFilters}
+              onClear={clearFilters}
+            >
+              <SelectFilter
+                value={fincaFilter}
+                onChange={(v) => {
+                  setFincaFilter(v);
+                  setPage(1);
+                }}
+                options={fincaOptions}
+                placeholder="Finca"
               />
-            </div>
+              <SelectFilter
+                value={estadoFilter}
+                onChange={(v) => {
+                  setEstadoFilter(v);
+                  setPage(1);
+                }}
+                options={estadoOptions}
+                placeholder="Estado"
+              />
+            </FiltersBar>
+
+            <DataTable
+              columns={columns}
+              data={lotes}
+              keyExtractor={(l) => l.id}
+              loading={loading}
+              error={error}
+              onRetry={loadData}
+              emptyState={{
+                title: "Sin lotes",
+                description: "Agrega tu primer lote para organizar tus animales.",
+                action: canCreate
+                  ? { label: "Nuevo lote", onClick: openCreate }
+                  : undefined,
+              }}
+            />
+
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
           </CardContent>
         </Card>
 
@@ -310,3 +420,4 @@ export default function LotesPage() {
     </MotionFadeSlide>
   );
 }
+

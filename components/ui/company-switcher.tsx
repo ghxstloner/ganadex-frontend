@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { setActiveCompany } from "@/lib/auth/auth.service";
 import { updateStoredSession } from "@/lib/auth/storage";
@@ -22,6 +23,7 @@ export function CompanySwitcher({
   onCompanyChange,
 }: CompanySwitcherProps) {
   const [loading, setLoading] = useState<string | null>(null);
+  const router = useRouter();
 
   const empresaActiva = empresas.find((emp) => emp.id === empresaActivaId);
 
@@ -33,8 +35,7 @@ export function CompanySwitcher({
       const session = await setActiveCompany(empresa.id);
       updateStoredSession(session);
       onCompanyChange?.(empresa);
-      // Recargar la página para asegurar que todos los componentes se actualicen
-      window.location.reload();
+      router.refresh();
     } catch (error) {
       console.error("Error cambiando empresa:", error);
     } finally {
@@ -56,7 +57,7 @@ export function CompanySwitcher({
       <div className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium">
         <Avatar className="h-5 w-5">
           <AvatarImage
-            src={empresaActiva?.logo_url || empresaActiva?.logo}
+            src={empresaActiva?.logo_url || empresaActiva?.logo || undefined}
             alt={empresaActiva?.nombre}
           />
           <AvatarFallback className="text-xs font-semibold">
@@ -74,7 +75,7 @@ export function CompanySwitcher({
       <div className="flex items-center gap-2 w-full">
         <Avatar className="h-6 w-6 flex-shrink-0">
           <AvatarImage
-            src={empresa.logo_url || empresa.logo}
+            src={empresa.logo_url || empresa.logo || undefined}
             alt={empresa.nombre}
           />
           <AvatarFallback className="text-xs font-semibold">
@@ -111,7 +112,7 @@ export function CompanySwitcher({
           <div className="flex items-center gap-2 min-w-0">
             <Avatar className="h-5 w-5 flex-shrink-0">
               <AvatarImage
-                src={empresaActiva?.logo_url || empresaActiva?.logo}
+                src={empresaActiva?.logo_url || empresaActiva?.logo || undefined}
                 alt={empresaActiva?.nombre}
               />
               <AvatarFallback className="text-xs font-semibold">

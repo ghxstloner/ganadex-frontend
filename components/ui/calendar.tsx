@@ -2,7 +2,9 @@
 
 import * as React from "react"
 import { format } from "date-fns"
+import type { Locale } from "date-fns"
 import { es } from "date-fns/locale"
+
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
@@ -12,6 +14,7 @@ import {
   DayPicker,
   getDefaultClassNames,
   type DayButton,
+  type DayPickerLocale,
 } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
@@ -25,13 +28,18 @@ function Calendar({
   buttonVariant = "ghost",
   formatters,
   components,
-  locale = es,
+  locale,
   fromYear,
   toYear,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
 }) {
+  const resolvedLocale = (locale ?? es) as unknown as Required<React.ComponentProps<typeof DayPicker>>["locale"];
+  const resolvedFormatLocale = resolvedLocale as unknown as Locale;
+  const resolvedProps = props as React.ComponentProps<typeof DayPicker>;
+  const resolvedCaptionLayout = captionLayout as React.ComponentProps<typeof DayPicker>["captionLayout"];
+
   const defaultClassNames = getDefaultClassNames()
   const currentYear = new Date().getFullYear()
   const resolvedFromYear =
@@ -48,12 +56,12 @@ function Calendar({
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className
       )}
-      captionLayout={captionLayout}
-      locale={locale}
+      captionLayout={resolvedCaptionLayout}
+      locale={resolvedLocale}
       fromYear={resolvedFromYear}
       toYear={resolvedToYear}
       formatters={{
-        formatMonthDropdown: (date) => format(date, "MMM", { locale }),
+        formatMonthDropdown: (date) => format(date, "MMM", { locale: resolvedFormatLocale }),
         ...formatters,
       }}
       classNames={{
@@ -95,7 +103,7 @@ function Calendar({
         ),
         caption_label: cn(
           "select-none font-medium",
-          captionLayout === "label"
+          resolvedCaptionLayout === "label"
             ? "text-sm"
             : "rounded-md pl-2 pr-1 flex items-center gap-1 text-sm h-8 [&>svg]:text-muted-foreground [&>svg]:size-3.5",
           defaultClassNames.caption_label
@@ -117,7 +125,7 @@ function Calendar({
         ),
         day: cn(
           "relative w-full h-full p-0 text-center [&:last-child[data-selected=true]_button]:rounded-r-md group/day aspect-square select-none",
-          props.showWeekNumber
+          resolvedProps.showWeekNumber
             ? "[&:nth-child(2)[data-selected=true]_button]:rounded-l-md"
             : "[&:first-child[data-selected=true]_button]:rounded-l-md",
           defaultClassNames.day
@@ -186,7 +194,7 @@ function Calendar({
         },
         ...components,
       }}
-      {...props}
+      {...resolvedProps}
     />
   )
 }

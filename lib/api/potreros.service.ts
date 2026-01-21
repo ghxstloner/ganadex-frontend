@@ -41,8 +41,21 @@ function buildQueryString(query: Record<string, unknown>): string {
     return str ? `?${str}` : "";
 }
 
-function normalizePotreroBody(data: any) {
-    const body: Record<string, any> = {};
+type PotreroFormPayload = Partial<CreatePotreroDTO> & {
+    geometry?: Array<{ lat: number; lng: number }> | null;
+    estado?: string;
+    capacidad_animales?: number | string | null;
+    area_hectareas?: number | string | null;
+    area_m2?: number | string | null;
+    notas?: string | null;
+    tipo_pasto?: string | null;
+    id_finca?: string | null;
+    id_tipo_potrero?: string | null;
+};
+
+function normalizePotreroBody(data: PotreroFormPayload) {
+    const body: Record<string, unknown> = {};
+
 
     // id_finca es requerido por el backend
     if (data?.id_finca && data.id_finca !== "" && data.id_finca !== "__none__") {
@@ -53,13 +66,14 @@ function normalizePotreroBody(data: any) {
         body.nombre = String(data.nombre);
     }
 
-    if (data?.area_hectareas !== undefined && data?.area_hectareas !== null && data?.area_hectareas !== "") {
+    if (data?.area_hectareas !== undefined && data?.area_hectareas !== null) {
         body.area_hectareas = String(data.area_hectareas);
     }
 
-    if (data?.area_m2 !== undefined && data?.area_m2 !== null && data?.area_m2 !== "") {
+    if (data?.area_m2 !== undefined && data?.area_m2 !== null) {
         body.area_m2 = String(data.area_m2);
     }
+
 
     if (data?.geometry && Array.isArray(data.geometry) && data.geometry.length > 0) {
         body.geometry = data.geometry;
@@ -75,9 +89,10 @@ function normalizePotreroBody(data: any) {
         body.estado = String(data.estado);
     }
 
-    if (data?.capacidad_animales !== undefined && data?.capacidad_animales !== null && data?.capacidad_animales !== "") {
+    if (data?.capacidad_animales !== undefined && data?.capacidad_animales !== null) {
         body.capacidad_animales = String(data.capacidad_animales);
     }
+
 
     if (data?.notas && data.notas !== "") {
         body.notas = String(data.notas);

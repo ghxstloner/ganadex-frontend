@@ -271,8 +271,11 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [session, setSession] = useState<GanadexSession | null>(null);
+  const [session, setSession] = useState<GanadexSession | null>(() =>
+    getStoredSession()
+  );
   const [loading, setLoading] = useState(true);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -290,7 +293,7 @@ export default function DashboardLayout({
     }
 
     let active = true;
-    setSession(stored);
+
 
     fetchMe()
       .then((response) => {
@@ -397,6 +400,7 @@ export default function DashboardLayout({
               variant="ghost"
               size="icon"
               onClick={() => setSidebarOpen(true)}
+              aria-label="Abrir navegación"
             >
               <Menu className="h-5 w-5" />
             </Button>
@@ -498,6 +502,7 @@ export default function DashboardLayout({
             size="icon-sm"
             className="lg:hidden"
             onClick={() => setSidebarOpen(false)}
+            aria-label="Cerrar navegación"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -579,8 +584,10 @@ export default function DashboardLayout({
                                   return next;
                                 });
                               }}
+                              aria-expanded={isExpanded}
+                              aria-controls={`submenu-${item.label}`}
                               className={cn(
-                                "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+                                "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
                                 hasActiveChild
                                   ? "bg-primary/10 text-primary"
                                   : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
@@ -597,7 +604,10 @@ export default function DashboardLayout({
                               )}
                             </button>
                             {isExpanded && visibleChildren.length > 0 && (
-                              <div className="ml-4 mt-1 space-y-1 border-l-2 border-border pl-3">
+                              <div
+                                id={`submenu-${item.label}`}
+                                className="ml-4 mt-1 space-y-1 border-l-2 border-border pl-3"
+                              >
                                 {visibleChildren
                                   .filter((child) => child.href)
                                   .map((child) => {
@@ -615,16 +625,16 @@ export default function DashboardLayout({
                                     const isChildActive = matchingChildren.length > 0 && matchingChildren[0].href === href;
                                     const ChildIcon = child.icon;
                                     return (
-                                      <Link
-                                        key={href}
-                                        href={href}
-                                        className={cn(
-                                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
-                                          isChildActive
-                                            ? "bg-primary text-primary-foreground shadow-sm"
-                                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                                        )}
-                                      >
+                                  <Link
+                                    key={href}
+                                    href={href}
+                                    className={cn(
+                                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
+                                      isChildActive
+                                        ? "bg-primary text-primary-foreground shadow-sm"
+                                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                                    )}
+                                  >
                                         <ChildIcon className="h-3.5 w-3.5" />
                                         {child.label}
                                       </Link>
@@ -637,7 +647,7 @@ export default function DashboardLayout({
                           <Link
                             href={item.href!}
                             className={cn(
-                              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+                              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
                               isActive
                                 ? "bg-primary text-primary-foreground shadow-sm"
                                 : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"

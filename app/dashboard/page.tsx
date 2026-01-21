@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   ArrowRight,
   BarChart3,
@@ -174,10 +175,10 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <Button asChild variant="ghost" className="px-0">
-                    <a href={link.href} className="flex items-center gap-2">
+                    <Link href={link.href} className="flex items-center gap-2">
                       Entrar
                       <ArrowRight className="h-4 w-4" />
-                    </a>
+                    </Link>
                   </Button>
                 </CardContent>
               </Card>

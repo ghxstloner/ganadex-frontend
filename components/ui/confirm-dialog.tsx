@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 
@@ -9,7 +10,8 @@ export type ConfirmDialogProps = {
     onClose: () => void;
     onConfirm: () => void;
     title?: string;
-    description?: string;
+    description?: ReactNode;
+
     confirmLabel?: string;
     cancelLabel?: string;
     loading?: boolean;
@@ -30,7 +32,12 @@ export function ConfirmDialog({
     return (
         <Modal open={open} onClose={onClose} title={title} description={description}>
             <div className="flex justify-end gap-2 pt-4">
-                <Button variant="ghost" onClick={onClose} disabled={loading}>
+                <Button
+                    variant="ghost"
+                    onClick={onClose}
+                    disabled={loading}
+                    autoFocus={!loading}
+                >
                     {cancelLabel}
                 </Button>
                 <Button

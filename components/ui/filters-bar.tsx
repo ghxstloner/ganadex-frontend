@@ -60,6 +60,7 @@ export type SelectFilterProps = {
     onChange: (value: string) => void;
     options: { value: string; label: string }[];
     placeholder?: string;
+    label?: string;
     className?: string;
 };
 
@@ -68,10 +69,12 @@ export function SelectFilter({
     onChange,
     options,
     placeholder = "Todos",
+    label,
     className,
 }: SelectFilterProps) {
     const ALL_VALUE = "__all__";
     const selectValue = value || ALL_VALUE;
+    const selectLabel = label ?? placeholder;
     
     return (
         <Select 
@@ -82,7 +85,7 @@ export function SelectFilter({
                 <SelectValue placeholder={placeholder} />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value={ALL_VALUE}>{placeholder}</SelectItem>
+                <SelectItem value={ALL_VALUE}>{selectLabel}</SelectItem>
                 {options.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}

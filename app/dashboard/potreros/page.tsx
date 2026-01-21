@@ -72,7 +72,7 @@ const loteSchema = z.object({
   id_finca: z.string().min(1, "Selecciona una finca"),
   nombre: z.string().min(1, "Ingresa el nombre"),
   descripcion: z.string().optional(),
-  activo: z.boolean().optional().default(true),
+  activo: z.boolean().default(true),
 });
 
 const ocupacionSchema = z.object({
@@ -644,8 +644,8 @@ function LotesTab({ fincas }: { fincas: Finca[] }) {
   const [submitting, setSubmitting] = useState(false);
 
   const form = useForm<LoteForm>({
-    resolver: zodResolver(loteSchema),
-    defaultValues: { nombre: "" },
+    resolver: zodResolver(loteSchema) as never,
+    defaultValues: { nombre: "", id_finca: "", activo: true },
   });
 
   const loadData = useCallback(async () => {
@@ -688,8 +688,9 @@ function LotesTab({ fincas }: { fincas: Finca[] }) {
       setLotes((prev) => [created, ...prev]);
       toast.success("Lote creado");
       setCreateOpen(false);
-    } catch (err: any) {
-      toast.error(err?.message || "Error al crear lote");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : undefined;
+      toast.error(errorMessage || "Error al crear lote");
     } finally {
       setSubmitting(false);
     }
@@ -904,8 +905,9 @@ function OcupacionesTab({ potreros, lotes }: { potreros: Potrero[]; lotes: Lote[
     }
   };
 
-  const formatDate = (d: string) =>
+  const formatDate = (d: string | Date) =>
     new Date(d).toLocaleDateString("es-CO", { year: "numeric", month: "short", day: "numeric" });
+
 
   const columns: DataTableColumn<Ocupacion>[] = [
     { key: "potrero", header: "Potrero", render: (o) => <span className="font-medium">{o.potrero_nombre ?? "—"}</span> },

@@ -36,6 +36,7 @@ export type Animal = {
     id_finca?: string | null;
     finca_nombre?: string | null;
     lote_id?: string | null;
+    lote_actual_id?: string | null;
     lote_nombre?: string | null;
     potrero_id?: string | null;
     potrero_nombre?: string | null;
@@ -249,19 +250,24 @@ export type Ocupacion = {
     finca_nombre?: string | null;
     id_potrero: string;
     potrero_nombre?: string | null;
-    id_lote: string;
+    id_lote?: string | null;
     lote_nombre?: string | null;
     fecha_inicio: string | Date;
     fecha_fin?: string | Date | null;
+    cantidad_animales?: number | null;
     activo?: boolean;
     notas?: string | null;
 };
 
 export type CreateOcupacionDTO = {
-    id_finca: string;
-    id_potrero: string;
-    id_lote: string;
+    id_finca?: string;
+    id_potrero?: string;
+    potrero_id?: string;
+    id_lote?: string;
+    lote_id?: string;
     fecha_inicio: string;
+    fecha_fin?: string;
+    cantidad_animales?: number;
     notas?: string;
 };
 
@@ -276,7 +282,7 @@ export type OcupacionResumenPotrero = {
     finca_id: string;
     finca_nombre: string;
     lote_id: string;
-    lote_nombre: string;
+    lote_nombre?: string | null;
     fecha_inicio: string | Date;
     dias: number;
 };
@@ -287,7 +293,7 @@ export type OcupacionResumenLote = {
     finca_id: string;
     finca_nombre: string;
     potrero_id: string;
-    potrero_nombre: string;
+    potrero_nombre?: string | null;
     fecha_inicio: string | Date;
     dias: number;
 };

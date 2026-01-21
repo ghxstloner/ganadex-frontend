@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Plus, History } from "lucide-react";
+import { Loader2, Plus, History, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -160,7 +160,7 @@ export default function OcupacionPage() {
 
   const lotesFiltrados = useMemo(() => {
     if (!watchedFincaId) return [];
-    return lotes.filter((l) => l.finca_id === watchedFincaId);
+    return lotes.filter((l) => l.id_finca === watchedFincaId);
   }, [lotes, watchedFincaId]);
 
   // Cargar resumen
@@ -678,10 +678,7 @@ export default function OcupacionPage() {
             <div className="space-y-4">
               <p>
                 ¿Deseas cerrar la ocupación de{" "}
-                {selectedOcupacion &&
-                  ("potrero_nombre" in selectedOcupacion
-                    ? selectedOcupacion.potrero_nombre
-                    : selectedOcupacion.lote_nombre)}
+                {selectedOcupacion ? selectedOcupacion.potrero_nombre ?? selectedOcupacion.lote_nombre : null}
                 ?
               </p>
               <div className="space-y-2">

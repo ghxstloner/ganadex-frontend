@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -55,14 +55,15 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
     // Default keyExtractor: use item.id if available, otherwise use index
     const getKey = keyExtractor || ((item: T, index: number) => {
-        if (item && typeof item === 'object' && 'id' in item) {
-            const id = (item as any).id;
+        if (item && typeof item === "object" && "id" in item) {
+            const id = (item as { id?: unknown }).id;
             if (id !== null && id !== undefined) {
                 return String(id);
             }
         }
         return `row-${index}`;
     });
+
 
     return (
         <div

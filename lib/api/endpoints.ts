@@ -37,6 +37,9 @@ export const endpoints = {
   movimientos: "/movimientos",
   movimientoById: (id: string) => `/movimientos/${id}`,
   movimientosMotivos: "/movimientos/motivos/list",
+  movimientosExport: "/movimientos/export",
+  movimientosTemplate: "/movimientos/template",
+  movimientosImport: "/movimientos/import",
 
   // Potreros
   potreros: "/potreros",
@@ -47,6 +50,8 @@ export const endpoints = {
   // Lotes
   lotes: "/lotes",
   loteById: (id: string) => `/lotes/${id}`,
+  loteBulkAssign: (id: string) => `/lotes/${id}/bulk-assign`,
+  loteBulkRemove: (id: string) => `/lotes/${id}/bulk-remove`,
 
   // Ocupaciones
   ocupaciones: "/ocupaciones",

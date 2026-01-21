@@ -2,9 +2,16 @@ import { apiRequest, type PaginatedResponse } from "@/lib/api/request";
 import { endpoints } from "@/lib/api/endpoints";
 import type { Lote, CreateLoteDTO, UpdateLoteDTO } from "@/lib/types/business";
 
+export type BulkAnimalsResponse = {
+    assigned_count?: number;
+    removed_count?: number;
+    failed?: { animal_id: string; reason: string }[];
+};
+
 export type LotesQuery = {
     q?: string;
     finca_id?: string;
+    activo?: boolean;
     estado?: string;
     page?: number;
     limit?: number;
@@ -32,6 +39,10 @@ export async function fetchLote(id: string): Promise<Lote> {
     return apiRequest<Lote>(endpoints.loteById(id));
 }
 
+export async function fetchLoteAnimales(loteId: string): Promise<any[]> {
+    return apiRequest<any[]>(`${endpoints.loteById(loteId)}/animales`);
+}
+
 export async function createLote(data: CreateLoteDTO): Promise<Lote> {
     return apiRequest<Lote>(endpoints.lotes, {
         method: "POST",
@@ -49,5 +60,25 @@ export async function updateLote(id: string, data: UpdateLoteDTO): Promise<Lote>
 export async function deleteLote(id: string): Promise<void> {
     return apiRequest<void>(endpoints.loteById(id), {
         method: "DELETE",
+    });
+}
+
+export async function bulkAssignAnimales(
+    loteId: string,
+    animalIds: string[]
+): Promise<BulkAnimalsResponse> {
+    return apiRequest<BulkAnimalsResponse>(endpoints.loteBulkAssign(loteId), {
+        method: "POST",
+        body: { animal_ids: animalIds },
+    });
+}
+
+export async function bulkRemoveAnimales(
+    loteId: string,
+    animalIds: string[]
+): Promise<BulkAnimalsResponse> {
+    return apiRequest<BulkAnimalsResponse>(endpoints.loteBulkRemove(loteId), {
+        method: "POST",
+        body: { animal_ids: animalIds },
     });
 }

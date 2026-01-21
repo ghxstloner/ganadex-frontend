@@ -33,6 +33,8 @@ export function ImageUpload({
   const [isDragging, setIsDragging] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const inputId = React.useId();
+  const errorId = React.useId();
 
   // Generate preview from File or URL
   React.useEffect(() => {
@@ -85,7 +87,7 @@ export function ImageUpload({
     onChange?.(file);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -101,7 +103,7 @@ export function ImageUpload({
     }
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     e.stopPropagation();
     if (!disabled) {
@@ -109,7 +111,7 @@ export function ImageUpload({
     }
   };
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -132,6 +134,14 @@ export function ImageUpload({
     }
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLLabelElement>) => {
+    if (disabled) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      inputRef.current?.click();
+    }
+  };
+
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
     setPreview(null);
@@ -145,9 +155,10 @@ export function ImageUpload({
 
   return (
     <div className={cn("w-full", className)}>
-      <div
+      <label
+        htmlFor={inputId}
         className={cn(
-          "relative border-2 border-dashed rounded-lg transition-colors",
+          "relative block border-2 border-dashed rounded-lg transition-colors",
           isDragging && !disabled
             ? "border-primary bg-primary/5"
             : "border-border bg-background",
@@ -159,8 +170,14 @@ export function ImageUpload({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        tabIndex={disabled ? -1 : 0}
+        role="button"
+        aria-disabled={disabled}
+        aria-describedby={error ? errorId : undefined}
       >
         <input
+          id={inputId}
           ref={inputRef}
           type="file"
           accept={acceptedFormats.includes("image/*") ? "image/*" : acceptedFormats.join(",")}
@@ -183,6 +200,7 @@ export function ImageUpload({
                 size="icon"
                 className="absolute top-2 right-2 h-8 w-8"
                 onClick={handleRemove}
+                aria-label="Eliminar imagen"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -207,10 +225,12 @@ export function ImageUpload({
             </p>
           </div>
         )}
-      </div>
+      </label>
 
       {error && (
-        <p className="mt-2 text-xs text-destructive">{error}</p>
+        <p id={errorId} className="mt-2 text-xs text-destructive">
+          {error}
+        </p>
       )}
     </div>
   );
