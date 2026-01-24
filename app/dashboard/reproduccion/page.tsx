@@ -36,7 +36,7 @@ import { getStoredSession } from "@/lib/auth/storage";
 import { hasPermission } from "@/lib/auth/permissions";
 
 const eventoSchema = z.object({
-  animal_id: z.string().min(1, "Selecciona un animal"),
+  id_animal: z.string().min(1, "Selecciona un animal"),
   tipo: z.string().min(1, "Selecciona un tipo"),
   fecha: z.string().min(1, "Ingresa la fecha"),
   resultado: z.string().optional(),
@@ -126,7 +126,7 @@ function SemaforoTab() {
       <FiltersBar>
         <SelectFilter value={estadoFilter} onChange={setEstadoFilter} options={estadoOptions} placeholder="Estado" />
       </FiltersBar>
-      <DataTable columns={columns} data={data} keyExtractor={(r) => r.animal_id} loading={loading} error={error} onRetry={loadData} emptyState={{ title: "Sin datos de semáforo" }} />
+      <DataTable columns={columns} data={data} keyExtractor={(r) => r.id_animal} loading={loading} error={error} onRetry={loadData} emptyState={{ title: "Sin datos de semáforo" }} />
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   );
@@ -150,7 +150,7 @@ function EventosTab({ animales }: { animales: Animal[] }) {
 
   const form = useForm<EventoForm>({
     resolver: zodResolver(eventoSchema),
-    defaultValues: { animal_id: "", tipo: "", fecha: new Date().toISOString().split("T")[0] },
+    defaultValues: { id_animal: "", tipo: "", fecha: new Date().toISOString().split("T")[0] },
   });
 
   const loadData = useCallback(async () => {
@@ -172,7 +172,7 @@ function EventosTab({ animales }: { animales: Animal[] }) {
   }, [loadData]);
 
   const openCreate = () => {
-    form.reset({ animal_id: "", tipo: "", fecha: new Date().toISOString().split("T")[0] });
+    form.reset({ id_animal: "", tipo: "", fecha: new Date().toISOString().split("T")[0] });
     setCreateOpen(true);
   };
 
@@ -244,7 +244,7 @@ function EventosTab({ animales }: { animales: Animal[] }) {
           <div className="space-y-2">
             <label className="text-sm font-medium">Animal *</label>
             <Controller
-              name="animal_id"
+              name="id_animal"
               control={form.control}
               render={({ field }) => (
                 <Select value={field.value || ""} onValueChange={field.onChange}>
@@ -259,8 +259,8 @@ function EventosTab({ animales }: { animales: Animal[] }) {
                 </Select>
               )}
             />
-            {form.formState.errors.animal_id && (
-              <p className="text-sm text-red-500">{form.formState.errors.animal_id.message}</p>
+            {form.formState.errors.id_animal && (
+              <p className="text-sm text-red-500">{form.formState.errors.id_animal.message}</p>
             )}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

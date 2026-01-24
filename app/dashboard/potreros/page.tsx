@@ -77,7 +77,7 @@ const loteSchema = z.object({
 
 const ocupacionSchema = z.object({
   potrero_id: z.string().min(1, "Selecciona un potrero"),
-  lote_id: z.string().optional(),
+  lote_id: z.string().min(1, "Selecciona un lote"),
   fecha_inicio: z.string().min(1, "Ingresa fecha inicio"),
   fecha_fin: z.string().optional(),
   cantidad_animales: z.any().optional(),
@@ -870,12 +870,16 @@ function OcupacionesTab({ potreros, lotes }: { potreros: Potrero[]; lotes: Lote[
   const handleCreate = async (values: OcupacionForm) => {
     setSubmitting(true);
     try {
+      const potrero = potreros.find((p) => p.id === values.potrero_id);
+      if (!potrero?.id_finca) {
+        toast.error("No se pudo determinar la finca del potrero");
+        return;
+      }
       const created = await createOcupacion({
-        potrero_id: values.potrero_id,
-        lote_id: values.lote_id || undefined,
+        id_finca: potrero.id_finca,
+        id_potrero: values.potrero_id,
+        id_lote: values.lote_id,
         fecha_inicio: values.fecha_inicio,
-        fecha_fin: values.fecha_fin || undefined,
-        cantidad_animales: values.cantidad_animales,
       });
       setOcupaciones((prev) => [created, ...prev]);
       toast.success("Ocupación registrada");

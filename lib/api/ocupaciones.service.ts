@@ -4,7 +4,8 @@ import type {
     Ocupacion,
     CreateOcupacionDTO,
     CloseOcupacionDTO,
-    OcupacionResumen,
+    OcupacionActivaResponse,
+    CerrarOcupacionResponse,
 } from "@/lib/types/business";
 
 export type OcupacionesQuery = {
@@ -18,9 +19,15 @@ export type OcupacionesQuery = {
     limit?: number;
 };
 
-export type OcupacionResumenQuery = {
+export type OcupacionesActivasQuery = {
     id_finca?: string;
-    search?: string;
+    vista?: "potrero" | "lote";
+};
+
+export type OcupacionesHistorialQuery = {
+    id_finca?: string;
+    id_potrero?: string;
+    id_lote?: string;
 };
 
 function buildQueryString(query: Record<string, unknown>): string {
@@ -46,7 +53,7 @@ export async function fetchOcupacion(id: string): Promise<Ocupacion> {
 }
 
 export async function createOcupacion(data: CreateOcupacionDTO): Promise<Ocupacion> {
-    return apiRequest<Ocupacion>(endpoints.ocupaciones, {
+    return apiRequest<Ocupacion>(endpoints.ocupacionesAsignar, {
         method: "POST",
         body: data,
     });
@@ -55,16 +62,26 @@ export async function createOcupacion(data: CreateOcupacionDTO): Promise<Ocupaci
 export async function cerrarOcupacion(
     id: string,
     data: CloseOcupacionDTO
-): Promise<Ocupacion> {
-    return apiRequest<Ocupacion>(`${endpoints.ocupaciones}/${id}/cerrar`, {
-        method: "PATCH",
-        body: data,
+): Promise<CerrarOcupacionResponse> {
+    return apiRequest<CerrarOcupacionResponse>(endpoints.ocupacionesCerrar, {
+        method: "POST",
+        body: {
+            id_ocupacion: id,
+            ...data,
+        },
     });
 }
 
-export async function fetchResumenActual(
-    query: OcupacionResumenQuery = {}
-): Promise<OcupacionResumen> {
+export async function fetchOcupacionesActivas(
+    query: OcupacionesActivasQuery = {}
+): Promise<OcupacionActivaResponse> {
     const qs = buildQueryString(query);
-    return apiRequest<OcupacionResumen>(`${endpoints.ocupaciones}/resumen-actual${qs}`);
+    return apiRequest<OcupacionActivaResponse>(`${endpoints.ocupacionesActivas}${qs}`);
+}
+
+export async function fetchOcupacionesHistorial(
+    query: OcupacionesHistorialQuery = {}
+): Promise<Ocupacion[]> {
+    const qs = buildQueryString(query);
+    return apiRequest<Ocupacion[]>(`${endpoints.ocupacionesHistorial}${qs}`);
 }

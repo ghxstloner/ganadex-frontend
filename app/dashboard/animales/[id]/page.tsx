@@ -28,8 +28,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { DataTable } from "@/components/ui/data-table";
 import { ErrorState } from "@/components/ui/error-state";
+import { Pagination } from "@/components/ui/pagination";
 import { MotionFadeSlide } from "@/components/ui/animate";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,7 +67,20 @@ import {
     type CreateEstadoHistorialDTO,
 } from "@/lib/api/animales.service";
 import { fetchFincas } from "@/lib/api/fincas.service";
-import type { AnimalPerfil, Identificacion, Finca, Raza, ColorPelaje, TipoIdentificacion } from "@/lib/types/business";
+import {
+    fetchAnimalMovimientos,
+    fetchAnimalUbicacionActual,
+} from "@/lib/api/movimientos.service";
+import type {
+    AnimalPerfil,
+    Identificacion,
+    Finca,
+    Raza,
+    ColorPelaje,
+    TipoIdentificacion,
+    Movimiento,
+    UbicacionActual,
+} from "@/lib/types/business";
 import { getStoredSession } from "@/lib/auth/storage";
 import { hasPermission } from "@/lib/auth/permissions";
 import { buildImageUrl } from "@/lib/api/client";
@@ -281,6 +295,7 @@ export default function AnimalPerfilPage() {
     const session = getStoredSession();
     const canView = hasPermission(session, "animales.view");
     const canEdit = hasPermission(session, "animales.edit");
+    const canViewMovimientos = hasPermission(session, "movimientos.view");
 
     const [animal, setAnimal] = useState<AnimalPerfil | null>(null);
     const [identificaciones, setIdentificaciones] = useState<Identificacion[]>([]);
@@ -294,6 +309,13 @@ export default function AnimalPerfilPage() {
     const [error, setError] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [activeTab, setActiveTab] = useState("resumen");
+
+    const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
+    const [movimientosPage, setMovimientosPage] = useState(1);
+    const [movimientosTotalPages, setMovimientosTotalPages] = useState(1);
+    const [movimientosLoading, setMovimientosLoading] = useState(false);
+    const [movimientosError, setMovimientosError] = useState(false);
+    const [ubicacionActual, setUbicacionActual] = useState<UbicacionActual | null>(null);
 
     // Form states
     const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -444,6 +466,25 @@ export default function AnimalPerfilPage() {
         }
     }, []);
 
+    const loadMovimientos = useCallback(async () => {
+        if (!canViewMovimientos) return;
+        setMovimientosLoading(true);
+        setMovimientosError(false);
+        try {
+            const [movimientosRes, ubicacionRes] = await Promise.all([
+                fetchAnimalMovimientos(id, { page: movimientosPage, limit: 10 }),
+                fetchAnimalUbicacionActual(id),
+            ]);
+            setMovimientos(movimientosRes.items ?? []);
+            setMovimientosTotalPages(movimientosRes.meta?.totalPages ?? 1);
+            setUbicacionActual(ubicacionRes.ubicacionActual ?? null);
+        } catch {
+            setMovimientosError(true);
+        } finally {
+            setMovimientosLoading(false);
+        }
+    }, [canViewMovimientos, id, movimientosPage]);
+
     useEffect(() => {
         loadAnimal();
         loadFincas();
@@ -459,6 +500,16 @@ export default function AnimalPerfilPage() {
             loadCategorias(sexoValue);
         }
     }, [animal?.sexo, loadCategorias]);
+
+    useEffect(() => {
+        if (activeTab === "movimientos") {
+            loadMovimientos();
+        }
+    }, [activeTab, loadMovimientos]);
+
+    useEffect(() => {
+        setMovimientosPage(1);
+    }, [id]);
 
     const handleSearchPadre = useCallback(async (query: string) => {
         if (!query || query.length < 2) {
@@ -1521,6 +1572,122 @@ export default function AnimalPerfilPage() {
         );
     };
 
+    const renderMovimientosTab = () => {
+        if (!canViewMovimientos) {
+            return (
+                <NoPermission
+                    title="Sin permisos"
+                    description="No tienes permisos para ver los movimientos."
+                />
+            );
+        }
+
+        const destinoLabel = ubicacionActual
+            ? ubicacionActual.potreroNombre ?? ubicacionActual.loteNombre ?? "Sin destino"
+            : "Sin ubicación registrada";
+        const tipoLabel = ubicacionActual?.tipoMovimiento
+            ? ubicacionActual.tipoMovimiento === "potrero"
+                ? "Potrero"
+                : ubicacionActual.tipoMovimiento === "lote"
+                  ? "Lote"
+                  : "Sin destino"
+            : null;
+
+        return (
+            <div className="space-y-4">
+                <Card>
+                    <CardContent className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
+                        {movimientosLoading && !ubicacionActual && !movimientosError ? (
+                            <div className="w-full space-y-2">
+                                <div className="h-4 w-48 animate-pulse rounded bg-muted" />
+                                <div className="h-4 w-64 animate-pulse rounded bg-muted" />
+                            </div>
+                        ) : movimientosError ? (
+                            <div className="text-sm text-muted-foreground">
+                                No se pudo cargar la ubicación actual.
+                            </div>
+                        ) : ubicacionActual ? (
+                            <div className="space-y-1">
+                                <div className="text-xs uppercase text-muted-foreground">Ubicación actual</div>
+                                <div className="text-base font-semibold">
+                                    {ubicacionActual.fincaNombre ?? "Finca sin nombre"}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                    {destinoLabel}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                    {formatDate(ubicacionActual.fechaMovimiento)}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-1">
+                                <div className="text-xs uppercase text-muted-foreground">Ubicación actual</div>
+                                <div className="text-sm text-muted-foreground">Sin ubicación registrada</div>
+                            </div>
+                        )}
+                        {tipoLabel && (
+                            <Badge variant="muted" className="self-start sm:self-auto">
+                                {tipoLabel}
+                            </Badge>
+                        )}
+                    </CardContent>
+                </Card>
+                <DataTable
+                    columns={[
+                        {
+                            key: "fecha_hora",
+                            header: "Fecha",
+                            render: (item) => formatDate(item.fecha_hora),
+                        },
+                        {
+                            key: "tipo",
+                            header: "Tipo",
+                            render: (item) => {
+                                const tipo = item.potrero_destino_id || item.potrero_destino_nombre
+                                    ? "Potrero"
+                                    : item.lote_destino_id || item.lote_destino_nombre
+                                      ? "Lote"
+                                      : "Sin destino";
+                                return <Badge variant="muted">{tipo}</Badge>;
+                            },
+                        },
+                        {
+                            key: "origen",
+                            header: "Origen",
+                            render: (item) =>
+                                item.potrero_origen_nombre ?? item.lote_origen_nombre ?? "—",
+                        },
+                        {
+                            key: "destino",
+                            header: "Destino",
+                            render: (item) =>
+                                item.potrero_destino_nombre ?? item.lote_destino_nombre ?? "Sin destino",
+                        },
+                        {
+                            key: "motivo",
+                            header: "Observación",
+                            render: (item) => item.motivo_nombre ?? item.observaciones ?? "—",
+                        },
+                    ]}
+                    data={movimientos}
+                    keyExtractor={(item) => item.id}
+                    loading={movimientosLoading}
+                    error={movimientosError}
+                    onRetry={loadMovimientos}
+                    emptyState={{
+                        title: "Sin movimientos",
+                        description: "Este animal no tiene movimientos registrados.",
+                    }}
+                />
+                <Pagination
+                    page={movimientosPage}
+                    totalPages={movimientosTotalPages}
+                    onPageChange={setMovimientosPage}
+                />
+            </div>
+        );
+    };
+
     const tabs = [
         {
             id: "resumen",
@@ -1535,47 +1702,7 @@ export default function AnimalPerfilPage() {
         {
             id: "movimientos",
             label: "Movimientos",
-            content: (
-                <DataTable
-                    columns={[
-                        {
-                            key: "fecha_hora",
-                            header: "Fecha",
-                            render: (item) => formatDate(item.fecha_hora),
-                        },
-                        {
-                            key: "tipo",
-                            header: "Tipo",
-                            render: (item) => {
-                                const tipo =
-                                    item.potrero_destino_id || item.potrero_destino_nombre
-                                        ? "Potrero"
-                                        : item.lote_destino_id || item.lote_destino_nombre
-                                          ? "Lote"
-                                          : "—";
-                                return <Badge variant="muted">{tipo}</Badge>;
-                            },
-                        },
-                        {
-                            key: "destino",
-                            header: "Destino",
-                            render: (item) =>
-                                item.potrero_destino_nombre ?? item.lote_destino_nombre ?? "—",
-                        },
-                        {
-                            key: "motivo",
-                            header: "Motivo",
-                            render: (item) => item.motivo_nombre ?? item.observaciones ?? "—",
-                        },
-                    ]}
-                    data={animal.ultimos_movimientos ?? []}
-                    keyExtractor={(item) => item.id}
-                    emptyState={{
-                        title: "Sin movimientos",
-                        description: "Este animal no tiene movimientos registrados.",
-                    }}
-                />
-            ),
+            content: renderMovimientosTab(),
         },
         {
             id: "salud",

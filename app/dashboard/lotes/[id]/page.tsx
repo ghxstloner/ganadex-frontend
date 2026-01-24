@@ -521,6 +521,9 @@ export default function LoteDetailPage() {
               <p className="text-xs text-blue-700 dark:text-blue-300">
                 Solo se muestran animales de la misma finca que no están en este lote.
               </p>
+              <p className="mt-2 text-xs text-blue-700 dark:text-blue-300">
+                Esta acción registra movimientos y actualiza el lote actual del animal.
+              </p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -617,7 +620,7 @@ export default function LoteDetailPage() {
                   <div className="mt-2 space-y-1 text-xs text-emerald-600 dark:text-emerald-400">
                     <p className="font-medium">{bulkResult.failed.length} error{bulkResult.failed.length !== 1 ? "es" : ""}:</p>
                     {bulkResult.failed.slice(0, 3).map((fail) => (
-                      <div key={`${fail.animal_id}-${fail.reason}`}>
+                      <div key={`${fail.id_animal}-${fail.reason}`}>
                         • {fail.reason}
                       </div>
                     ))}
@@ -658,6 +661,9 @@ export default function LoteDetailPage() {
             <div className="rounded-md border border-border bg-orange-50 dark:bg-orange-950/20 p-3 text-sm">
               <p className="text-xs text-orange-700 dark:text-orange-300">
                 Solo se muestran animales que actualmente están en este lote.
+              </p>
+              <p className="mt-2 text-xs text-orange-700 dark:text-orange-300">
+                Esta acción registra movimientos y actualiza el lote actual del animal.
               </p>
             </div>
 
@@ -758,7 +764,7 @@ export default function LoteDetailPage() {
                   <div className="mt-2 space-y-1 text-xs text-emerald-600 dark:text-emerald-400">
                     <p className="font-medium">{bulkResult.failed.length} error{bulkResult.failed.length !== 1 ? "es" : ""}:</p>
                     {bulkResult.failed.slice(0, 3).map((fail) => (
-                      <div key={`${fail.animal_id}-${fail.reason}`}>
+                      <div key={`${fail.id_animal}-${fail.reason}`}>
                         • {fail.reason}
                       </div>
                     ))}

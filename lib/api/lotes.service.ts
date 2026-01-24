@@ -5,7 +5,7 @@ import type { Lote, CreateLoteDTO, UpdateLoteDTO } from "@/lib/types/business";
 export type BulkAnimalsResponse = {
     assigned_count?: number;
     removed_count?: number;
-    failed?: { animal_id: string; reason: string }[];
+    failed?: { id_animal: string; reason: string }[];
 };
 
 export type LotesQuery = {
@@ -69,7 +69,7 @@ export async function bulkAssignAnimales(
 ): Promise<BulkAnimalsResponse> {
     return apiRequest<BulkAnimalsResponse>(endpoints.loteBulkAssign(loteId), {
         method: "POST",
-        body: { animal_ids: animalIds },
+        body: { id_animal: animalIds },
     });
 }
 
@@ -79,6 +79,6 @@ export async function bulkRemoveAnimales(
 ): Promise<BulkAnimalsResponse> {
     return apiRequest<BulkAnimalsResponse>(endpoints.loteBulkRemove(loteId), {
         method: "POST",
-        body: { animal_ids: animalIds },
+        body: { id_animal: animalIds },
     });
 }

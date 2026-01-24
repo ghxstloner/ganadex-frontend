@@ -21,6 +21,8 @@ export const endpoints = {
   animalPerfil: (id: string) => `/animales/${id}/perfil`,
   animalIdentificaciones: (id: string) => `/animales/${id}/identificaciones`,
   animalFoto: (id: string) => `/animales/${id}/foto`,
+  animalMovimientos: (id: string) => `/animales/${id}/movimientos`,
+  animalUbicacionActual: (id: string) => `/animales/${id}/ubicacion-actual`,
 
   // Identificaciones
   identificacionById: (id: string) => `/identificaciones/${id}`,
@@ -57,6 +59,10 @@ export const endpoints = {
   ocupaciones: "/ocupaciones",
   ocupacionById: (id: string) => `/ocupaciones/${id}`,
   ocupacionesResumenActual: "/ocupaciones/resumen-actual",
+  ocupacionesActivas: "/ocupaciones/activas",
+  ocupacionesHistorial: "/ocupaciones/historial",
+  ocupacionesAsignar: "/ocupaciones/asignar",
+  ocupacionesCerrar: "/ocupaciones/cerrar",
 
   // Reproducción
   reproduccionEventos: "/reproduccion/eventos",

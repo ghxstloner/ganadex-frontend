@@ -1,28 +1,63 @@
-# Repository Guidelines
+# Guía para agentes (Frontend)
 
-## Project Structure & Module Organization
-This is a Next.js App Router project. Core code lives in `app/` with `layout.tsx` and `page.tsx` as the entry points. Global styles are in `app/globals.css`. Reusable utilities live in `lib/` (see `lib/utils.ts`). Static assets belong in `public/`. The repo uses a path alias of `@/*` (e.g., `@/lib/utils`) and includes a `components.json` configuration for shadcn-style components if you add UI modules under `components/`.
+## Estructura del proyecto
 
-## Build, Test, and Development Commands
-- `npm run dev`: Start the local dev server at `http://localhost:3000`.
-- `npm run build`: Build the production bundle.
-- `npm run start`: Run the production server (requires `npm run build` first).
-- `npm run lint`: Run ESLint with Next.js rules.
+- Proyecto Next.js App Router.
+- Rutas y layouts en `app/` (`layout.tsx`, `page.tsx`).
+- Utilidades y clientes en `lib/` (ver `lib/utils.ts`).
+- Componentes reutilizables en `components/`.
+- Assets en `public/`.
+- Alias: `@/*` apunta a la raíz.
 
-## Coding Style & Naming Conventions
-Use TypeScript (`.ts`/`.tsx`) with strict mode enabled. Follow Next.js and ESLint defaults (see `eslint.config.mjs`). Keep indentation consistent at 2 spaces and prefer single responsibility React components. Naming patterns:
-- React components: `PascalCase` (e.g., `UserCard.tsx`)
-- Functions/variables: `camelCase`
-- Files in `app/` follow Next.js routing conventions (folders and `page.tsx`).
+## Comandos de desarrollo, build y lint
 
-## Testing Guidelines
-No testing framework is configured yet. If you add tests, document the chosen tool (e.g., Vitest/Jest) and include a script in `package.json`. Use clear test naming such as `*.test.ts` or `*.spec.ts`.
+- `npm run dev`: servidor local en `http://localhost:3000`.
+- `npm run build`: build de producción.
+- `npm run start`: server de producción (requiere `npm run build`).
+- `npm run lint`: ESLint con reglas de Next.js.
 
-## Commit & Pull Request Guidelines
-No established commit message convention exists yet (only the initial scaffold commit). Use concise, imperative messages (e.g., "Add dashboard layout"). For PRs, include:
-- A short summary of changes and motivation
-- Screenshots or short clips for UI changes
-- Linked issues or tasks when applicable
+## Tests
 
-## Security & Configuration Tips
-Store secrets in `.env.local` and keep them out of version control. Avoid committing build artifacts such as `.next/` and `node_modules/` (already ignored).
+- No hay framework de tests configurado.
+- Si se agrega, documentar scripts en `package.json` y el patrón de nombres.
+
+## Estilo de código y convenciones
+
+- TypeScript estricto habilitado en `tsconfig.json`.
+- Mantener el estilo del archivo existente (comillas dobles, semicolons según archivo).
+- Imports: React/externos primero, luego `@/`, luego relativos.
+- Componentes: `PascalCase` para archivos `.tsx` y exportaciones.
+- Hooks y helpers: `camelCase`.
+- Rutas: seguir convención App Router (`app/**/page.tsx`).
+- Cliente/servidor: agregar `"use client"` solo cuando sea necesario.
+- Evitar `fetch` ad-hoc; usar `lib/api/request.ts` y el patrón `ApiError`.
+
+## Manejo de errores
+
+- Usar `apiRequest`/`apiClient` para requests.
+- Mostrar errores con `toast` cuando corresponda (evitar duplicar lógica).
+
+## Configuración y seguridad
+
+- Mantener secretos en `.env`/`.env.development` locales.
+- No commitear `.env` ni artefactos de build (`.next/`, `node_modules/`).
+
+## Estado funcional actual (referencia)
+
+Leyenda:
+- `IMPLEMENTADO`: funcionalidad operativa y evidenciada.
+- `PARCIAL`: UI o lógica incompleta / riesgo operativo.
+- `NO_IMPLEMENTADO`: no existe implementación funcional.
+- `MODELO_SIN_UI`: existe en modelo de datos pero no expuesto funcionalmente.
+
+Resumen por módulo:
+- Inventario Animal: registro/identificadores/historial OK; ubicación/auditoría parcial; manga sin implementar.
+- Fincas: CRUD OK; multi-finca parcial.
+- Potreros y Pastoreo: CRUD y mapas OK; ocupación parcial; historial/rotación/alertas no implementado.
+- Lotes: CRUD y asignación OK; trazabilidad parcial.
+- Movimientos y Trazabilidad: registro/motivo OK; historial y auditoría parcial/no implementado.
+- Reproducción: servicios en modelo; palpaciones, días abiertos, intervalos, semáforo, historial no implementado.
+- Sanidad: eventos en modelo; plan de vacunación y medicamentos parcial; retiro/alertas no implementado.
+- Producción de Leche: producción en modelo; conciliación e historial no implementado.
+- Nacimientos: registro/alertas/impacto inventario no implementado.
+- Finanzas: transacciones en modelo; multi-moneda/análisis/integración no implementado.

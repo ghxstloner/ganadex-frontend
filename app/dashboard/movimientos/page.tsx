@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -44,6 +44,7 @@ import {
   createMovimiento,
   deleteMovimiento,
   fetchMotivosMovimiento,
+  fetchAnimalUbicacionActual,
   exportMovimientosExcel,
   downloadMovimientosTemplate,
   importMovimientosExcel,
@@ -63,6 +64,7 @@ import type {
   Finca,
   Lote,
   Potrero,
+  UbicacionActual,
 } from "@/lib/types/business";
 
 import { getStoredSession } from "@/lib/auth/storage";
@@ -72,11 +74,11 @@ const movimientoSchema = z.object({
   id_finca: z.string().min(1, "Selecciona una finca"),
   id_animal: z.string().min(1, "Selecciona un animal"),
   fecha_hora: z.string().min(1, "Ingresa la fecha y hora"),
-  lote_origen_id: z.string().optional(),
-  lote_destino_id: z.string().optional(),
-  potrero_origen_id: z.string().optional(),
-  potrero_destino_id: z.string().optional(),
-  id_motivo_movimiento: z.string().optional(),
+  lote_origen_id: z.string().nullable().optional(),
+  lote_destino_id: z.string().nullable().optional(),
+  potrero_origen_id: z.string().nullable().optional(),
+  potrero_destino_id: z.string().nullable().optional(),
+  id_motivo_movimiento: z.string().nullable().optional(),
   observaciones: z.string().optional(),
 });
 
@@ -105,10 +107,13 @@ export default function MovimientosPage() {
   const [lotes, setLotes] = useState<Lote[]>([]);
   const [potreros, setPotreros] = useState<Potrero[]>([]);
   const [motivos, setMotivos] = useState<MotivoMovimiento[]>([]);
+  const [ubicacionActual, setUbicacionActual] = useState<UbicacionActual | null>(null);
+  const [ubicacionLoading, setUbicacionLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const previousFincaIdRef = useRef<string | null>(null);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -135,17 +140,22 @@ export default function MovimientosPage() {
       id_finca: "",
       id_animal: "",
       fecha_hora: new Date().toISOString(),
-      lote_origen_id: "",
-      lote_destino_id: "",
-      potrero_origen_id: "",
-      potrero_destino_id: "",
-      id_motivo_movimiento: "",
+      lote_origen_id: null,
+      lote_destino_id: null,
+      potrero_origen_id: null,
+      potrero_destino_id: null,
+      id_motivo_movimiento: null,
       observaciones: "",
     },
   });
 
   const watchedFincaId = form.watch("id_finca");
   const watchedAnimalId = form.watch("id_animal");
+  const watchedFechaHora = form.watch("fecha_hora");
+  const watchedLoteOrigenId = form.watch("lote_origen_id");
+  const watchedLoteDestinoId = form.watch("lote_destino_id");
+  const watchedPotreroOrigenId = form.watch("potrero_origen_id");
+  const watchedPotreroDestinoId = form.watch("potrero_destino_id");
 
   const loadMovimientos = useCallback(async () => {
     setLoading(true);
@@ -202,18 +212,10 @@ export default function MovimientosPage() {
     return potreros.filter((p) => p.id_finca === watchedFincaId);
   }, [potreros, watchedFincaId]);
 
-  // Obtener finca del animal seleccionado
-  const animalSeleccionado = useMemo(() => {
-    if (!watchedAnimalId) return null;
-    return animales.find((a) => a.id === watchedAnimalId);
-  }, [animales, watchedAnimalId]);
-
-  // Auto-seleccionar finca cuando se selecciona un animal
-  useEffect(() => {
-    if (animalSeleccionado?.id_finca && !form.getValues("id_finca")) {
-      form.setValue("id_finca", animalSeleccionado.id_finca);
-    }
-  }, [animalSeleccionado, form]);
+  const animalesFiltrados = useMemo(() => {
+    if (!watchedFincaId) return [];
+    return animales.filter((a) => a.id_finca === watchedFincaId);
+  }, [animales, watchedFincaId]);
 
   useEffect(() => {
     loadMovimientos();
@@ -224,28 +226,156 @@ export default function MovimientosPage() {
     loadCatalogos();
   }, [loadAnimales, loadCatalogos]);
 
+  useEffect(() => {
+    if (previousFincaIdRef.current && previousFincaIdRef.current !== watchedFincaId) {
+      form.setValue("id_animal", "");
+      form.setValue("lote_origen_id", null);
+      form.setValue("lote_destino_id", null);
+      form.setValue("potrero_origen_id", null);
+      form.setValue("potrero_destino_id", null);
+      setUbicacionActual(null);
+    }
+    previousFincaIdRef.current = watchedFincaId || null;
+  }, [form, watchedFincaId]);
+
+  useEffect(() => {
+    if (!watchedAnimalId) {
+      setUbicacionActual(null);
+      setUbicacionLoading(false);
+      form.setValue("lote_origen_id", null);
+      form.setValue("lote_destino_id", null);
+      form.setValue("potrero_origen_id", null);
+      form.setValue("potrero_destino_id", null);
+      return;
+    }
+
+    let isActive = true;
+    setUbicacionLoading(true);
+
+    fetchAnimalUbicacionActual(watchedAnimalId)
+      .then((response) => {
+        if (!isActive) return;
+        const ubicacion = response.ubicacionActual ?? null;
+        setUbicacionActual(ubicacion);
+        form.setValue("lote_origen_id", ubicacion?.loteId ?? null);
+        form.setValue("potrero_origen_id", ubicacion?.potreroId ?? null);
+        form.setValue("lote_destino_id", ubicacion?.loteId ?? null);
+        form.setValue("potrero_destino_id", ubicacion?.potreroId ?? null);
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setUbicacionActual(null);
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setUbicacionLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [form, watchedAnimalId]);
+
   const animalOptions = useMemo(
     () =>
-      animales.map((a) => ({
+      animalesFiltrados.map((a) => ({
         value: a.id,
         label: a.nombre || a.codigo || a.identificador_principal || a.id.slice(0, 8),
         description: a.identificador_principal || a.codigo || undefined,
       })),
-    [animales]
+    [animalesFiltrados]
   );
+
+  const movimientoEstado = useMemo(() => {
+    const hasSeleccionMinima = Boolean(watchedFincaId && watchedAnimalId);
+    const hasUbicacion = Boolean(ubicacionActual);
+    const loteOrigen = watchedLoteOrigenId ?? null;
+    const loteDestino = watchedLoteDestinoId ?? null;
+    const potreroOrigen = watchedPotreroOrigenId ?? null;
+    const potreroDestino = watchedPotreroDestinoId ?? null;
+    const ultimaFecha = ubicacionActual?.fechaMovimiento
+      ? new Date(ubicacionActual.fechaMovimiento)
+      : null;
+    const fechaMovimiento = watchedFechaHora ? new Date(watchedFechaHora) : null;
+    const fechaInvalida = Boolean(
+      ultimaFecha && fechaMovimiento && fechaMovimiento < ultimaFecha
+    );
+    const ingresoInicialInvalido = !hasUbicacion && (loteOrigen || potreroOrigen);
+    const destinoNinguno = !loteDestino && !potreroDestino;
+    const noChange = loteOrigen === loteDestino && potreroOrigen === potreroDestino;
+    const origenMismatch =
+      hasUbicacion &&
+      (loteOrigen !== (ubicacionActual?.loteId ?? null) ||
+        potreroOrigen !== (ubicacionActual?.potreroId ?? null));
+
+    return {
+      hasSeleccionMinima,
+      hasUbicacion,
+      origenMismatch,
+      fechaInvalida,
+      ingresoInicialInvalido,
+      destinoNinguno,
+      noChange,
+    };
+  }, [
+    ubicacionActual,
+    watchedFincaId,
+    watchedAnimalId,
+    watchedLoteOrigenId,
+    watchedLoteDestinoId,
+    watchedPotreroOrigenId,
+    watchedPotreroDestinoId,
+    watchedFechaHora,
+  ]);
+
+  const mensajeBloqueo = useMemo(() => {
+    if (!movimientoEstado.hasSeleccionMinima) return null;
+    if (movimientoEstado.fechaInvalida) {
+      return "La fecha del movimiento es anterior al último movimiento registrado.";
+    }
+    if (movimientoEstado.ingresoInicialInvalido) {
+      return "El animal no tiene ubicación previa; el origen debe ser Ninguno.";
+    }
+    if (movimientoEstado.noChange) {
+      return "No hay ningún cambio que registrar.";
+    }
+    return null;
+  }, [movimientoEstado]);
+
+  const mensajeAdvertencia = useMemo(() => {
+    if (!movimientoEstado.hasSeleccionMinima) return null;
+    if (movimientoEstado.origenMismatch) {
+      return "El origen no coincide con la ubicación registrada. Se exige motivo y observaciones.";
+    }
+    if (movimientoEstado.destinoNinguno && movimientoEstado.hasUbicacion) {
+      return "Salida definitiva: el animal quedará sin ubicación activa.";
+    }
+    return null;
+  }, [movimientoEstado]);
+
+  const ubicacionResumen = useMemo(() => {
+    if (!ubicacionActual) return null;
+    const destino =
+      ubicacionActual.potreroNombre ?? ubicacionActual.loteNombre ?? "Sin destino";
+    const fincaNombre = ubicacionActual.fincaNombre ?? "Finca sin nombre";
+    return `${destino} · ${fincaNombre}`;
+  }, [ubicacionActual]);
 
   const openCreate = () => {
     form.reset({
       id_finca: "",
       id_animal: "",
       fecha_hora: new Date().toISOString(),
-      lote_origen_id: "",
-      lote_destino_id: "",
-      potrero_origen_id: "",
-      potrero_destino_id: "",
-      id_motivo_movimiento: "",
+      lote_origen_id: null,
+      lote_destino_id: null,
+      potrero_origen_id: null,
+      potrero_destino_id: null,
+      id_motivo_movimiento: null,
       observaciones: "",
     });
+    setUbicacionActual(null);
+    setUbicacionLoading(false);
+    previousFincaIdRef.current = null;
     setCreateOpen(true);
   };
 
@@ -254,18 +384,61 @@ export default function MovimientosPage() {
     setDeleteOpen(true);
   };
 
+  const validarMovimiento = (values: MovimientoForm) => {
+    if (mensajeBloqueo) {
+      if (movimientoEstado.fechaInvalida) {
+        form.setError("fecha_hora", {
+          message: "La fecha es anterior al último movimiento registrado.",
+        });
+      }
+      if (movimientoEstado.ingresoInicialInvalido) {
+        form.setError("lote_origen_id", {
+          message: "El origen debe ser Ninguno para el primer movimiento.",
+        });
+      }
+      return mensajeBloqueo;
+    }
+
+    const requiereMotivo =
+      (movimientoEstado.destinoNinguno && movimientoEstado.hasUbicacion) ||
+      movimientoEstado.origenMismatch;
+    if (requiereMotivo && !values.id_motivo_movimiento) {
+      form.setError("id_motivo_movimiento", {
+        message: "Selecciona un motivo.",
+      });
+      return movimientoEstado.origenMismatch
+        ? "El origen no coincide con la ubicación registrada."
+        : "Indica un motivo para registrar la salida definitiva.";
+    }
+
+    if (movimientoEstado.origenMismatch && !values.observaciones?.trim()) {
+      form.setError("observaciones", {
+        message: "Agrega una observación para la corrección.",
+      });
+      return "El origen no coincide con la ubicación registrada.";
+    }
+
+    return null;
+  };
+
   const handleCreate = async (values: MovimientoForm) => {
+    const validationMessage = validarMovimiento(values);
+    if (validationMessage) {
+      toast.error(validationMessage);
+      return;
+    }
+
     setSubmitting(true);
     try {
       const dto: CreateMovimientoDTO = {
         id_finca: values.id_finca,
         fecha_hora: values.fecha_hora,
         id_animal: values.id_animal,
-        lote_origen_id: values.lote_origen_id || undefined,
-        lote_destino_id: values.lote_destino_id || undefined,
-        potrero_origen_id: values.potrero_origen_id || undefined,
-        potrero_destino_id: values.potrero_destino_id || undefined,
-        id_motivo_movimiento: values.id_motivo_movimiento || undefined,
+        lote_origen_id: values.lote_origen_id ?? null,
+        lote_destino_id: values.lote_destino_id ?? null,
+        potrero_origen_id: values.potrero_origen_id ?? null,
+        potrero_destino_id: values.potrero_destino_id ?? null,
+        id_motivo_movimiento: values.id_motivo_movimiento ?? undefined,
         observaciones: values.observaciones || undefined,
       };
       const created = await createMovimiento(dto);
@@ -573,14 +746,15 @@ export default function MovimientosPage() {
                 name="id_animal"
                 control={form.control}
                 render={({ field }) => (
-                  <Autocomplete
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={animalOptions}
-                    placeholder="Seleccionar animal"
-                    searchPlaceholder="Buscar por nombre o identificacion"
-                    emptyText="No se encontraron animales."
-                  />
+                    <Autocomplete
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={animalOptions}
+                      placeholder="Seleccionar animal"
+                      searchPlaceholder="Buscar por nombre o identificacion"
+                      emptyText="No se encontraron animales."
+                      disabled={!watchedFincaId}
+                    />
                 )}
               />
               {form.formState.errors.id_animal && (
@@ -651,11 +825,11 @@ export default function MovimientosPage() {
                   control={form.control}
                   render={({ field }) => (
                     <Select
-                      value={field.value || "__none__"}
+                      value={field.value ?? "__none__"}
                       onValueChange={(value) =>
-                        field.onChange(value === "__none__" ? undefined : value)
+                        field.onChange(value === "__none__" ? null : value)
                       }
-                      disabled={!watchedFincaId}
+                      disabled={!watchedFincaId || !watchedAnimalId}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Ninguno" />
@@ -679,11 +853,11 @@ export default function MovimientosPage() {
                   control={form.control}
                   render={({ field }) => (
                     <Select
-                      value={field.value || "__none__"}
+                      value={field.value ?? "__none__"}
                       onValueChange={(value) =>
-                        field.onChange(value === "__none__" ? undefined : value)
+                        field.onChange(value === "__none__" ? null : value)
                       }
-                      disabled={!watchedFincaId}
+                      disabled={!watchedFincaId || !watchedAnimalId}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Ninguno" />
@@ -710,11 +884,11 @@ export default function MovimientosPage() {
                   control={form.control}
                   render={({ field }) => (
                     <Select
-                      value={field.value || "__none__"}
+                      value={field.value ?? "__none__"}
                       onValueChange={(value) =>
-                        field.onChange(value === "__none__" ? undefined : value)
+                        field.onChange(value === "__none__" ? null : value)
                       }
-                      disabled={!watchedFincaId}
+                      disabled={!watchedFincaId || !watchedAnimalId}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Ninguno" />
@@ -738,11 +912,11 @@ export default function MovimientosPage() {
                   control={form.control}
                   render={({ field }) => (
                     <Select
-                      value={field.value || "__none__"}
+                      value={field.value ?? "__none__"}
                       onValueChange={(value) =>
-                        field.onChange(value === "__none__" ? undefined : value)
+                        field.onChange(value === "__none__" ? null : value)
                       }
-                      disabled={!watchedFincaId}
+                      disabled={!watchedFincaId || !watchedAnimalId}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Ninguno" />
@@ -768,9 +942,9 @@ export default function MovimientosPage() {
                 control={form.control}
                 render={({ field }) => (
                   <Select
-                    value={field.value || "__none__"}
+                    value={field.value ?? "__none__"}
                     onValueChange={(value) =>
-                      field.onChange(value === "__none__" ? undefined : value)
+                      field.onChange(value === "__none__" ? null : value)
                     }
                   >
                     <SelectTrigger>
@@ -787,6 +961,11 @@ export default function MovimientosPage() {
                   </Select>
                 )}
               />
+              {form.formState.errors.id_motivo_movimiento && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.id_motivo_movimiento.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -796,7 +975,39 @@ export default function MovimientosPage() {
                 className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
                 placeholder="Observaciones adicionales..."
               />
+              {form.formState.errors.observaciones && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.observaciones.message}
+                </p>
+              )}
             </div>
+
+            {ubicacionLoading && watchedAnimalId && (
+              <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                Cargando ubicación actual del animal...
+              </div>
+            )}
+
+            {ubicacionResumen && (
+              <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  Ubicación registrada:
+                </span>{" "}
+                {ubicacionResumen}
+              </div>
+            )}
+
+            {mensajeAdvertencia && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                {mensajeAdvertencia}
+              </div>
+            )}
+
+            {mensajeBloqueo && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                {mensajeBloqueo}
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-2">
               <Button
@@ -806,7 +1017,10 @@ export default function MovimientosPage() {
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={submitting}>
+              <Button
+                type="submit"
+                disabled={submitting || ubicacionLoading || Boolean(mensajeBloqueo)}
+              >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Guardar
               </Button>
@@ -944,4 +1158,3 @@ export default function MovimientosPage() {
     </MotionFadeSlide>
   );
 }
-

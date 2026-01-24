@@ -39,7 +39,7 @@ import { getStoredSession } from "@/lib/auth/storage";
 import { hasPermission } from "@/lib/auth/permissions";
 
 const eventoSchema = z.object({
-  animal_id: z.string().min(1, "Selecciona un animal"),
+  id_animal: z.string().min(1, "Selecciona un animal"),
   tipo: z.string().min(1, "Selecciona un tipo"),
   fecha: z.string().min(1, "Ingresa la fecha"),
   diagnostico: z.string().optional(),
@@ -49,7 +49,7 @@ const eventoSchema = z.object({
 });
 
 const retiroSchema = z.object({
-  animal_id: z.string().min(1, "Selecciona un animal"),
+  id_animal: z.string().min(1, "Selecciona un animal"),
   motivo: z.string().min(1, "Ingresa el motivo"),
   tipo: z.enum(["carne", "leche", "ambos"]),
   fecha_inicio: z.string().min(1, "Ingresa fecha inicio"),
@@ -60,7 +60,7 @@ const retiroSchema = z.object({
 
 type EventoForm = z.infer<typeof eventoSchema>;
 type RetiroForm = {
-  animal_id: string;
+  id_animal: string;
   motivo: string;
   tipo: "carne" | "leche" | "ambos";
   fecha_inicio: string;
@@ -138,7 +138,7 @@ function EventosTab({ animales }: { animales: Animal[] }) {
 
   const form = useForm<EventoForm>({
     resolver: zodResolver(eventoSchema),
-    defaultValues: { animal_id: "", tipo: "", fecha: new Date().toISOString().split("T")[0] },
+    defaultValues: { id_animal: "", tipo: "", fecha: new Date().toISOString().split("T")[0] },
   });
 
   const loadData = useCallback(async () => {
@@ -160,7 +160,7 @@ function EventosTab({ animales }: { animales: Animal[] }) {
   }, [loadData]);
 
   const openCreate = () => {
-    form.reset({ animal_id: "", tipo: "", fecha: new Date().toISOString().split("T")[0] });
+    form.reset({ id_animal: "", tipo: "", fecha: new Date().toISOString().split("T")[0] });
     setCreateOpen(true);
   };
 
@@ -232,7 +232,7 @@ function EventosTab({ animales }: { animales: Animal[] }) {
           <div className="space-y-2">
             <label className="text-sm font-medium">Animal *</label>
             <Controller
-              name="animal_id"
+              name="id_animal"
               control={form.control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
@@ -247,8 +247,8 @@ function EventosTab({ animales }: { animales: Animal[] }) {
                 </Select>
               )}
             />
-            {form.formState.errors.animal_id && (
-              <p className="text-sm text-red-500">{form.formState.errors.animal_id.message}</p>
+            {form.formState.errors.id_animal && (
+              <p className="text-sm text-red-500">{form.formState.errors.id_animal.message}</p>
             )}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -329,7 +329,7 @@ function RetirosTab({ animales }: { animales: Animal[] }) {
 
   const form = useForm<RetiroForm>({
     resolver: zodResolver(retiroSchema),
-    defaultValues: { animal_id: "", motivo: "", tipo: "carne", fecha_inicio: "", fecha_fin: "", dias_retiro: 7, medicamento: "" },
+    defaultValues: { id_animal: "", motivo: "", tipo: "carne", fecha_inicio: "", fecha_fin: "", dias_retiro: 7, medicamento: "" },
   });
 
   const loadData = useCallback(async () => {
@@ -351,7 +351,7 @@ function RetirosTab({ animales }: { animales: Animal[] }) {
   }, [loadData]);
 
   const openCreate = () => {
-    form.reset({ animal_id: "", motivo: "", tipo: "carne", fecha_inicio: new Date().toISOString().split("T")[0], fecha_fin: "", dias_retiro: 7 });
+    form.reset({ id_animal: "", motivo: "", tipo: "carne", fecha_inicio: new Date().toISOString().split("T")[0], fecha_fin: "", dias_retiro: 7 });
     setCreateOpen(true);
   };
 
@@ -421,7 +421,7 @@ function RetirosTab({ animales }: { animales: Animal[] }) {
           <div className="space-y-2">
             <label className="text-sm font-medium">Animal *</label>
             <Controller
-              name="animal_id"
+              name="id_animal"
               control={form.control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
@@ -436,8 +436,8 @@ function RetirosTab({ animales }: { animales: Animal[] }) {
                 </Select>
               )}
             />
-            {form.formState.errors.animal_id && (
-              <p className="text-sm text-red-500">{form.formState.errors.animal_id.message}</p>
+            {form.formState.errors.id_animal && (
+              <p className="text-sm text-red-500">{form.formState.errors.id_animal.message}</p>
             )}
           </div>
           <div className="space-y-2">

@@ -6,12 +6,13 @@ import type {
     Movimiento,
     CreateMovimientoDTO,
     UpdateMovimientoDTO,
+    UbicacionActual,
 } from "@/lib/types/business";
 
 
 export type MovimientosQuery = {
     q?: string;
-    animal_id?: string;
+    id_animal?: string;
     tipo?: string;
     motivo?: string;
     lote_id?: string;
@@ -20,6 +21,14 @@ export type MovimientosQuery = {
     fecha_hasta?: string;
     page?: number;
     limit?: number;
+};
+
+export type AnimalMovimientosQuery = {
+    page?: number;
+    limit?: number;
+    desde?: string;
+    hasta?: string;
+    tipo?: string;
 };
 
 function buildQueryString(query: Record<string, unknown>): string {
@@ -38,6 +47,28 @@ export async function fetchMovimientos(
 ): Promise<PaginatedResponse<Movimiento>> {
     const qs = buildQueryString(query);
     return apiRequest<PaginatedResponse<Movimiento>>(`${endpoints.movimientos}${qs}`);
+}
+
+export async function fetchAnimalMovimientos(
+    id_animal: string,
+    query: AnimalMovimientosQuery = {}
+): Promise<PaginatedResponse<Movimiento>> {
+    const qs = buildQueryString(query);
+    return apiRequest<PaginatedResponse<Movimiento>>(
+        `${endpoints.animalMovimientos(id_animal)}${qs}`
+    );
+}
+
+export type UbicacionActualResponse = {
+    ubicacionActual: UbicacionActual | null;
+};
+
+export async function fetchAnimalUbicacionActual(
+    id_animal: string
+): Promise<UbicacionActualResponse> {
+    return apiRequest<UbicacionActualResponse>(
+        endpoints.animalUbicacionActual(id_animal)
+    );
 }
 
 export async function fetchMovimiento(id: string): Promise<Movimiento> {
@@ -128,4 +159,3 @@ export async function importMovimientosExcel(file: File): Promise<ImportMovimien
         body: formData,
     });
 }
-

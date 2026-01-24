@@ -9,7 +9,7 @@ import type {
 
 export type ReproduccionEventosQuery = {
     q?: string;
-    animal_id?: string;
+    id_animal?: string;
     tipo?: string;
     fecha_desde?: string;
     fecha_hasta?: string;

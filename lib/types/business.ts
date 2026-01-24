@@ -117,7 +117,7 @@ export type HistorialCategoria = {
 
 export type Identificacion = {
     id: string;
-    animal_id?: string;
+    id_animal?: string;
     tipo: string;
     tipo_id?: string;
     valor: string;
@@ -152,6 +152,7 @@ export type Movimiento = {
     id: string;
     empresa_id?: string;
     id_finca: string;
+    finca_nombre?: string | null;
     id_animal: string;
     animal_nombre?: string | null;
     fecha_hora: string | Date;
@@ -172,10 +173,10 @@ export type CreateMovimientoDTO = {
     id_finca: string;
     fecha_hora: string; // ISO 8601 format
     id_animal: string;
-    lote_origen_id?: string;
-    lote_destino_id?: string;
-    potrero_origen_id?: string;
-    potrero_destino_id?: string;
+    lote_origen_id?: string | null;
+    lote_destino_id?: string | null;
+    potrero_origen_id?: string | null;
+    potrero_destino_id?: string | null;
     id_motivo_movimiento?: string;
     observaciones?: string;
 };
@@ -276,31 +277,52 @@ export type CloseOcupacionDTO = {
     notas?: string;
 };
 
-export type OcupacionResumenPotrero = {
+export type OcupacionActivaItem = {
+    id_ocupacion: string;
+    fecha_inicio: string | Date;
+    dias: number;
+    animales_del_lote: number;
+};
+
+export type OcupacionActivaPotrero = {
     potrero_id: string;
     potrero_nombre: string;
     finca_id: string;
     finca_nombre: string;
-    lote_id: string;
-    lote_nombre?: string | null;
-    fecha_inicio: string | Date;
-    dias: number;
+    animales_presentes: number;
+    mezcla_indebida: boolean;
+    ocupaciones: Array<
+        OcupacionActivaItem & {
+            lote_id: string;
+            lote_nombre: string;
+        }
+    >;
 };
 
-export type OcupacionResumenLote = {
+export type OcupacionActivaLote = {
     lote_id: string;
     lote_nombre: string;
     finca_id: string;
     finca_nombre: string;
-    potrero_id: string;
-    potrero_nombre?: string | null;
-    fecha_inicio: string | Date;
-    dias: number;
+    ocupaciones: Array<
+        OcupacionActivaItem & {
+            potrero_id: string;
+            potrero_nombre: string;
+            animales_presentes: number;
+            mezcla_indebida: boolean;
+        }
+    >;
 };
 
-export type OcupacionResumen = {
-    porPotrero: OcupacionResumenPotrero[];
-    porLote: OcupacionResumenLote[];
+export type OcupacionActivaResponse =
+    | { vista: "potrero"; porPotrero: OcupacionActivaPotrero[] }
+    | { vista: "lote"; porLote: OcupacionActivaLote[] };
+
+export type CerrarOcupacionResponse = {
+    ocupacion: Ocupacion;
+    warning?: {
+        animales_en_potrero: number;
+    } | null;
 };
 
 // ====================
@@ -309,7 +331,7 @@ export type OcupacionResumen = {
 
 export type EventoReproductivo = {
     id: string;
-    animal_id: string;
+    id_animal: string;
     animal_nombre?: string | null;
     animal_codigo?: string | null;
     tipo: string;
@@ -323,7 +345,7 @@ export type EventoReproductivo = {
 };
 
 export type CreateEventoReproductivoDTO = {
-    animal_id: string;
+    id_animal: string;
     tipo: string;
     fecha: string;
     resultado?: string;
@@ -335,7 +357,7 @@ export type CreateEventoReproductivoDTO = {
 export type UpdateEventoReproductivoDTO = Partial<CreateEventoReproductivoDTO>;
 
 export type SemaforoRow = {
-    animal_id: string;
+    id_animal: string;
     animal_nombre?: string | null;
     animal_codigo?: string | null;
     estado: "verde" | "amarillo" | "rojo";
@@ -352,7 +374,7 @@ export type SemaforoRow = {
 
 export type EventoSanitario = {
     id: string;
-    animal_id: string;
+    id_animal: string;
     animal_nombre?: string | null;
     animal_codigo?: string | null;
     tipo: string;
@@ -368,7 +390,7 @@ export type EventoSanitario = {
 };
 
 export type CreateEventoSanitarioDTO = {
-    animal_id: string;
+    id_animal: string;
     tipo: string;
     fecha: string;
     diagnostico?: string;
@@ -384,7 +406,7 @@ export type UpdateEventoSanitarioDTO = Partial<CreateEventoSanitarioDTO>;
 
 export type RetiroSanitario = {
     id: string;
-    animal_id: string;
+    id_animal: string;
     animal_nombre?: string | null;
     animal_codigo?: string | null;
     motivo: string;
@@ -399,7 +421,7 @@ export type RetiroSanitario = {
 };
 
 export type CreateRetiroSanitarioDTO = {
-    animal_id: string;
+    id_animal: string;
     motivo: string;
     tipo: "carne" | "leche" | "ambos";
     fecha_inicio: string;
@@ -416,17 +438,28 @@ export type AlertaSalud = {
     tipo: "retiro_activo" | "vacuna_pendiente" | "tratamiento_pendiente" | "revision";
     titulo: string;
     descripcion: string;
-    animal_id?: string | null;
+    id_animal?: string | null;
     animal_nombre?: string | null;
     fecha_alerta?: string | null;
     prioridad: "alta" | "media" | "baja";
 };
 
 export type RestriccionesAnimal = {
-    animal_id: string;
+    id_animal: string;
     tiene_retiro_activo: boolean;
     retiro_activo?: RetiroSanitario | null;
     restricciones: string[];
+};
+
+export type UbicacionActual = {
+    fincaId: string;
+    fincaNombre?: string | null;
+    potreroId?: string | null;
+    potreroNombre?: string | null;
+    loteId?: string | null;
+    loteNombre?: string | null;
+    fechaMovimiento: string | Date;
+    tipoMovimiento?: string | null;
 };
 
 // ====================

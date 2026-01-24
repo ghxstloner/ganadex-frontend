@@ -38,14 +38,14 @@ export function Modal({
         }
       }}
     >
-      <DialogContent
-        showCloseButton={false}
-        aria-label={!hasHeading ? "Modal" : undefined}
-        className={cn(
-          "w-full max-w-2xl max-h-[90vh] overflow-hidden p-0",
+        <DialogContent
+          showCloseButton={false}
+          aria-label={!hasHeading ? "Modal" : undefined}
+          className={cn(
+          "flex w-full max-w-2xl max-h-[calc(100dvh-3rem)] flex-col overflow-hidden p-0",
           className
-        )}
-      >
+          )}
+        >
         <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
           <div className="flex-1 min-w-0">
             {title && (

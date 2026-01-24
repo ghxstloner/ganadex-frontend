@@ -10,7 +10,6 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
@@ -32,18 +31,18 @@ import {
 } from "@/components/ui/select";
 
 import {
-  fetchResumenActual,
-  fetchOcupaciones,
+  fetchOcupacionesActivas,
+  fetchOcupacionesHistorial,
   createOcupacion,
   cerrarOcupacion,
-  type OcupacionesQuery,
 } from "@/lib/api/ocupaciones.service";
 import { fetchFincas } from "@/lib/api/fincas.service";
 import { fetchPotreros } from "@/lib/api/potreros.service";
 import { fetchLotes } from "@/lib/api/lotes.service";
 import type {
-  OcupacionResumenPotrero,
-  OcupacionResumenLote,
+  OcupacionActivaPotrero,
+  OcupacionActivaLote,
+  CerrarOcupacionResponse,
   Ocupacion,
   CreateOcupacionDTO,
   CloseOcupacionDTO,
@@ -82,8 +81,8 @@ export default function OcupacionPage() {
 
   // Estados principales
   const [resumen, setResumen] = useState<{
-    porPotrero: OcupacionResumenPotrero[];
-    porLote: OcupacionResumenLote[];
+    porPotrero: OcupacionActivaPotrero[];
+    porLote: OcupacionActivaLote[];
   }>({ porPotrero: [], porLote: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -109,8 +108,10 @@ export default function OcupacionPage() {
   // Formulario cerrar ocupación
   const [cerrarOpen, setCerrarOpen] = useState(false);
   const [selectedOcupacion, setSelectedOcupacion] = useState<
-    OcupacionResumenPotrero | OcupacionResumenLote | null
+    | { id_ocupacion: string; potrero_nombre?: string; lote_nombre?: string }
+    | null
   >(null);
+  const [cerrarWarning, setCerrarWarning] = useState<string | null>(null);
   const cerrarForm = useForm<CerrarForm>({
     resolver: zodResolver(cerrarSchema),
     defaultValues: {
@@ -168,18 +169,27 @@ export default function OcupacionPage() {
     setLoading(true);
     setError(false);
     try {
-      const res = await fetchResumenActual({
-        id_finca: fincaFilter || undefined,
-        search: search || undefined,
+      const [porPotreroRes, porLoteRes] = await Promise.all([
+        fetchOcupacionesActivas({
+          id_finca: fincaFilter || undefined,
+          vista: "potrero",
+        }),
+        fetchOcupacionesActivas({
+          id_finca: fincaFilter || undefined,
+          vista: "lote",
+        }),
+      ]);
+      setResumen({
+        porPotrero: "porPotrero" in porPotreroRes ? porPotreroRes.porPotrero : [],
+        porLote: "porLote" in porLoteRes ? porLoteRes.porLote : [],
       });
-      setResumen(res);
     } catch {
       setError(true);
       toast.error("Error al cargar ocupaciones");
     } finally {
       setLoading(false);
     }
-  }, [fincaFilter, search]);
+  }, [fincaFilter]);
 
   useEffect(() => {
     loadResumen();
@@ -191,20 +201,18 @@ export default function OcupacionPage() {
 
     setHistorialLoading(true);
     try {
-      const query: OcupacionesQuery = {
+      const res = await fetchOcupacionesHistorial({
         id_potrero: historialPotrero || undefined,
         id_lote: historialLote || undefined,
-        activo: false,
-        limit: 100,
-      };
-      const res = await fetchOcupaciones(query);
-      setHistorialData(res.items ?? []);
+        id_finca: fincaFilter || undefined,
+      });
+      setHistorialData(res ?? []);
     } catch {
       toast.error("Error al cargar historial");
     } finally {
       setHistorialLoading(false);
     }
-  }, [historialPotrero, historialLote]);
+  }, [historialPotrero, historialLote, fincaFilter]);
 
   useEffect(() => {
     if (historialOpen) {
@@ -238,8 +246,13 @@ export default function OcupacionPage() {
     }
   };
 
-  const openCerrar = (ocupacion: OcupacionResumenPotrero | OcupacionResumenLote) => {
+  const openCerrar = (ocupacion: {
+    id_ocupacion: string;
+    potrero_nombre?: string;
+    lote_nombre?: string;
+  }) => {
     setSelectedOcupacion(ocupacion);
+    setCerrarWarning(null);
     cerrarForm.reset({
       fecha_fin: new Date().toISOString().split("T")[0],
       notas: "",
@@ -252,26 +265,16 @@ export default function OcupacionPage() {
 
     setSubmitting(true);
     try {
-      // Necesitamos el ID de la ocupación. Buscar en el resumen no lo tiene directamente,
-      // así que necesitamos buscar la ocupación activa por potrero o lote
-      const potreroId = "potrero_id" in selectedOcupacion ? selectedOcupacion.potrero_id : undefined;
-      const loteId = "lote_id" in selectedOcupacion ? selectedOcupacion.lote_id : undefined;
-      
-      const query: OcupacionesQuery = {
-        id_potrero: potreroId,
-        id_lote: loteId,
-        activo: true,
-        limit: 1,
-      };
-      const res = await fetchOcupaciones(query);
-      const ocupacion = res.items?.[0];
-      
-      if (!ocupacion) {
-        toast.error("No se encontró la ocupación activa");
-        return;
+      const res = await cerrarOcupacion(
+        selectedOcupacion.id_ocupacion,
+        values as CloseOcupacionDTO,
+      );
+      const warning = (res as CerrarOcupacionResponse)?.warning;
+      if (warning?.animales_en_potrero) {
+        setCerrarWarning(
+          `Aún hay ${warning.animales_en_potrero} animales de ese lote en este potrero.`,
+        );
       }
-
-      await cerrarOcupacion(ocupacion.id, values as CloseOcupacionDTO);
       toast.success("Ocupación cerrada exitosamente");
       setCerrarOpen(false);
       await loadResumen();
@@ -289,35 +292,42 @@ export default function OcupacionPage() {
   };
 
   // Columnas para tabla "Por potrero"
-  const columnsPorPotrero: DataTableColumn<OcupacionResumenPotrero>[] = [
+  const columnsPorPotrero: DataTableColumn<OcupacionActivaPotrero>[] = [
     {
       key: "potrero",
       header: "Potrero",
-      render: (o) => <span className="font-medium">{o.potrero_nombre}</span>,
+      render: (o) => (
+        <div>
+          <span className="font-medium">{o.potrero_nombre}</span>
+          {o.mezcla_indebida && (
+            <Badge variant="warning" className="ml-2">
+              Mezcla indebida
+            </Badge>
+          )}
+        </div>
+      ),
     },
     {
-      key: "lote",
-      header: "Lote",
-      render: (o) => o.lote_nombre,
+      key: "ocupaciones",
+      header: "Ocupaciones activas",
+      render: (o) => (
+        <div className="flex flex-wrap gap-2">
+          {o.ocupaciones.map((oc) => (
+            <div
+              key={oc.id_ocupacion}
+              className="rounded-md border border-border bg-muted/40 px-2 py-1 text-xs"
+            >
+              <span className="font-medium">{oc.lote_nombre}</span> · {oc.dias} días ·{" "}
+              {oc.animales_del_lote} animales
+            </div>
+          ))}
+        </div>
+      ),
     },
     {
       key: "finca",
       header: "Finca",
       render: (o) => o.finca_nombre,
-    },
-    {
-      key: "inicio",
-      header: "Inicio",
-      render: (o) => formatDate(o.fecha_inicio),
-    },
-    {
-      key: "dias",
-      header: "Días",
-      render: (o) => (
-        <Badge variant={o.dias > 30 ? "warning" : "success"}>
-          {o.dias} días
-        </Badge>
-      ),
     },
     {
       key: "actions",
@@ -332,14 +342,32 @@ export default function OcupacionPage() {
           >
             <History className="h-4 w-4" />
           </Button>
-          {canEdit && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openCerrar(o)}
+          {canEdit && o.ocupaciones.length > 0 && (
+            <Select
+              value=""
+              onValueChange={(value) => {
+                const selected = o.ocupaciones.find(
+                  (oc) => oc.id_ocupacion === value,
+                );
+                if (!selected) return;
+                openCerrar({
+                  id_ocupacion: selected.id_ocupacion,
+                  potrero_nombre: o.potrero_nombre,
+                  lote_nombre: selected.lote_nombre,
+                });
+              }}
             >
-              Cerrar
-            </Button>
+              <SelectTrigger className="h-8 w-[120px]">
+                <SelectValue placeholder="Cerrar" />
+              </SelectTrigger>
+              <SelectContent>
+                {o.ocupaciones.map((oc) => (
+                  <SelectItem key={oc.id_ocupacion} value={oc.id_ocupacion}>
+                    {oc.lote_nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
       ),
@@ -347,35 +375,38 @@ export default function OcupacionPage() {
   ];
 
   // Columnas para tabla "Por lote"
-  const columnsPorLote: DataTableColumn<OcupacionResumenLote>[] = [
+  const columnsPorLote: DataTableColumn<OcupacionActivaLote>[] = [
     {
       key: "lote",
       header: "Lote",
       render: (o) => <span className="font-medium">{o.lote_nombre}</span>,
     },
     {
-      key: "potrero",
-      header: "Potrero",
-      render: (o) => o.potrero_nombre,
+      key: "potreros",
+      header: "Potreros activos",
+      render: (o) => (
+        <div className="flex flex-wrap gap-2">
+          {o.ocupaciones.map((oc) => (
+            <div
+              key={oc.id_ocupacion}
+              className="rounded-md border border-border bg-muted/40 px-2 py-1 text-xs"
+            >
+              <span className="font-medium">{oc.potrero_nombre}</span> · {oc.dias} días ·{" "}
+              {oc.animales_del_lote} animales
+              {oc.mezcla_indebida && (
+                <Badge variant="warning" className="ml-2">
+                  Mezcla
+                </Badge>
+              )}
+            </div>
+          ))}
+        </div>
+      ),
     },
     {
       key: "finca",
       header: "Finca",
       render: (o) => o.finca_nombre,
-    },
-    {
-      key: "inicio",
-      header: "Inicio",
-      render: (o) => formatDate(o.fecha_inicio),
-    },
-    {
-      key: "dias",
-      header: "Días",
-      render: (o) => (
-        <Badge variant={o.dias > 30 ? "warning" : "success"}>
-          {o.dias} días
-        </Badge>
-      ),
     },
     {
       key: "actions",
@@ -390,14 +421,32 @@ export default function OcupacionPage() {
           >
             <History className="h-4 w-4" />
           </Button>
-          {canEdit && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openCerrar(o)}
+          {canEdit && o.ocupaciones.length > 0 && (
+            <Select
+              value=""
+              onValueChange={(value) => {
+                const selected = o.ocupaciones.find(
+                  (oc) => oc.id_ocupacion === value,
+                );
+                if (!selected) return;
+                openCerrar({
+                  id_ocupacion: selected.id_ocupacion,
+                  lote_nombre: o.lote_nombre,
+                  potrero_nombre: selected.potrero_nombre,
+                });
+              }}
             >
-              Cerrar
-            </Button>
+              <SelectTrigger className="h-8 w-[120px]">
+                <SelectValue placeholder="Cerrar" />
+              </SelectTrigger>
+              <SelectContent>
+                {o.ocupaciones.map((oc) => (
+                  <SelectItem key={oc.id_ocupacion} value={oc.id_ocupacion}>
+                    {oc.potrero_nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
       ),
@@ -678,9 +727,16 @@ export default function OcupacionPage() {
             <div className="space-y-4">
               <p>
                 ¿Deseas cerrar la ocupación de{" "}
-                {selectedOcupacion ? selectedOcupacion.potrero_nombre ?? selectedOcupacion.lote_nombre : null}
+                {selectedOcupacion
+                  ? selectedOcupacion.potrero_nombre ?? selectedOcupacion.lote_nombre
+                  : null}
                 ?
               </p>
+              {cerrarWarning && (
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  {cerrarWarning}
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Fecha fin *</label>
                 <Controller

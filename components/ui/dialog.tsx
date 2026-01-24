@@ -58,11 +58,11 @@ function DialogContent({
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
       {/* Wrapper para centrar solo en área de contenido */}
-      <div className="fixed inset-y-0 left-0 right-0 lg:left-72 z-[60] flex items-center justify-center px-4 pointer-events-none">
+      <div className="fixed inset-0 lg:left-72 z-[60] flex items-start justify-center px-4 py-6 sm:items-center sm:py-10 overflow-y-auto pointer-events-none">
         <DialogPrimitive.Content
           data-slot="dialog-content"
           className={cn(
-            "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 relative w-full max-w-[calc(100%-2rem)] grid gap-4 rounded-lg border p-6 shadow-lg duration-200 outline-none sm:max-w-lg pointer-events-auto",
+            "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 relative w-full max-w-[calc(100%-2rem)] max-h-[calc(100dvh-3rem)] overflow-y-auto grid gap-4 rounded-lg border p-6 shadow-lg duration-200 outline-none sm:max-w-lg pointer-events-auto",
             className
           )}
           {...props}

@@ -13,7 +13,7 @@ import type {
 
 export type EventosSanitariosQuery = {
     q?: string;
-    animal_id?: string;
+    id_animal?: string;
     tipo?: string;
     fecha_desde?: string;
     fecha_hasta?: string;
@@ -22,7 +22,7 @@ export type EventosSanitariosQuery = {
 };
 
 export type RetirosSanitariosQuery = {
-    animal_id?: string;
+    id_animal?: string;
     tipo?: string;
     activo?: boolean;
     fecha_desde?: string;
